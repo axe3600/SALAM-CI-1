@@ -223,7 +223,7 @@ function Settings() {
         })
 
         setAppearance({
-          theme: settings.appearance?.theme || "light",
+          theme: getSavedTheme(),
           animations: settings.appearance?.animations ?? true
         })
 
