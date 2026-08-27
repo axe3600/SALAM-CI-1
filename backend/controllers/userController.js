@@ -846,3 +846,344 @@ export const toggleUserStatus = async (req, res) => {
   }
 
 }
+
+
+// ======================================
+// MODIFIER SON PROPRE PROFIL
+// PUT /api/users/profile
+// UTILISATEUR AUTHENTIFIÉ
+// ======================================
+export const updateOwnProfile = async (req, res) => {
+
+  try {
+
+    const userId = req.user._id
+
+    const {
+      name,
+      email,
+      phone
+    } = req.body
+
+    // =========================
+    // VALIDATION
+    // =========================
+
+    if (!name || !email) {
+
+      return res.status(400).json({
+
+        message:
+          "Le nom et l'email sont obligatoires."
+
+      })
+
+    }
+
+    // =========================
+    // NORMALISATION
+    // =========================
+
+    const cleanName =
+      name.trim()
+
+    const normalizedEmail =
+      email.trim().toLowerCase()
+
+    const cleanPhone =
+      phone?.trim() || null
+
+    if (!cleanName) {
+
+      return res.status(400).json({
+
+        message:
+          "Le nom est obligatoire."
+
+      })
+
+    }
+
+    // =========================
+    // EMAIL DÉJÀ UTILISÉ
+    // =========================
+
+    const emailExists =
+      await User.findOne({
+
+        email: normalizedEmail,
+
+        _id: {
+          $ne: userId
+        }
+
+      })
+
+    if (emailExists) {
+
+      return res.status(400).json({
+
+        message:
+          "Cet email est déjà utilisé par un autre compte."
+
+      })
+
+    }
+
+    // =========================
+    // RECHERCHE UTILISATEUR
+    // =========================
+
+    const user =
+      await User.findById(userId)
+
+    if (!user) {
+
+      return res.status(404).json({
+
+        message:
+          "Utilisateur introuvable."
+
+      })
+
+    }
+
+    // =========================
+    // MODIFICATION
+    // =========================
+
+    user.name =
+      cleanName
+
+    user.email =
+      normalizedEmail
+
+    user.phone =
+      cleanPhone
+
+    await user.save()
+
+    // =========================
+    // UTILISATEUR SÉCURISÉ
+    // =========================
+
+    const safeUser =
+      user.toObject()
+
+    delete safeUser.password
+    delete safeUser.twoFactorSecret
+    delete safeUser.resetPasswordToken
+    delete safeUser.resetPasswordExpires
+    delete safeUser.phoneResetToken
+    delete safeUser.phoneResetExpires
+
+    // =========================
+    // RÉPONSE
+    // =========================
+
+    return res.status(200).json({
+
+      success: true,
+
+      message:
+        "Profil modifié avec succès.",
+
+      user: safeUser
+
+    })
+
+  }
+
+  catch (error) {
+
+    console.error(
+      "ERREUR MODIFICATION PROFIL :",
+      error
+    )
+
+    return res.status(500).json({
+
+      message:
+        "Impossible de modifier votre profil."
+
+    })
+
+  }
+
+}
+
+
+// ======================================
+// MODIFIER SON PROPRE MOT DE PASSE
+// PUT /api/users/profile/password
+// UTILISATEUR AUTHENTIFIÉ
+// ======================================
+export const changeOwnPassword = async (req, res) => {
+
+  try {
+
+    const userId =
+      req.user._id
+
+    const {
+      currentPassword,
+      newPassword
+    } = req.body
+
+    // =========================
+    // VALIDATION
+    // =========================
+
+    if (
+      !currentPassword ||
+      !newPassword
+    ) {
+
+      return res.status(400).json({
+
+        message:
+          "L'ancien et le nouveau mot de passe sont obligatoires."
+
+      })
+
+    }
+
+    // =========================
+    // LONGUEUR
+    // =========================
+
+    if (newPassword.length < 6) {
+
+      return res.status(400).json({
+
+        message:
+          "Le nouveau mot de passe doit contenir au moins 6 caractères."
+
+      })
+
+    }
+
+    // =========================
+    // RÉCUPÉRATION AVEC PASSWORD
+    // =========================
+
+    const user =
+      await User.findById(userId)
+        .select("+password")
+
+    if (!user) {
+
+      return res.status(404).json({
+
+        message:
+          "Utilisateur introuvable."
+
+      })
+
+    }
+
+    // =========================
+    // VÉRIFICATION ANCIEN MOT
+    // =========================
+
+    const passwordCorrect =
+      await bcrypt.compare(
+
+        currentPassword,
+
+        user.password
+
+      )
+
+    if (!passwordCorrect) {
+
+      return res.status(400).json({
+
+        message:
+          "L'ancien mot de passe est incorrect."
+
+      })
+
+    }
+
+    // =========================
+    // EMPÊCHER LE MÊME MOT
+    // =========================
+
+    const samePassword =
+      await bcrypt.compare(
+
+        newPassword,
+
+        user.password
+
+      )
+
+    if (samePassword) {
+
+      return res.status(400).json({
+
+        message:
+          "Le nouveau mot de passe doit être différent de l'ancien."
+
+      })
+
+    }
+
+    // =========================
+    // HASH
+    // =========================
+
+    user.password =
+      await bcrypt.hash(
+
+        newPassword,
+
+        10
+
+      )
+
+    // =========================
+    // INVALIDATION SESSIONS
+    // =========================
+
+    user.sessionVersion += 1
+
+    user.isOnline = false
+
+    await user.save()
+
+    // =========================
+    // RÉPONSE
+    // =========================
+
+    return res.status(200).json({
+
+      success: true,
+
+      logoutRequired: true,
+
+      message:
+        "Mot de passe modifié avec succès. Veuillez vous reconnecter."
+
+    })
+
+  }
+
+  catch (error) {
+
+    console.error(
+      "ERREUR MODIFICATION MOT DE PASSE :",
+      error
+    )
+
+    return res.status(500).json({
+
+      message:
+        "Impossible de modifier le mot de passe."
+
+    })
+
+  }
+
+}

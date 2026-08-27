@@ -2,6 +2,7 @@ import express from "express"
 
 import authMiddleware from "../middleware/authMiddleware.js"
 import adminMiddleware from "../middleware/adminMiddleware.js"
+import maintenanceMiddleware from "../middleware/maintenanceMiddleware.js"
 
 import {
 
@@ -12,7 +13,9 @@ import {
   createUser,
   updateUser,
   deleteUser,
-  toggleUserStatus
+  toggleUserStatus,
+  updateOwnProfile,
+  changeOwnPassword
 
 } from "../controllers/userController.js"
 
@@ -48,6 +51,8 @@ router.get(
 
   authMiddleware,
 
+  maintenanceMiddleware,
+
   (req, res) => {
 
     res.json({
@@ -73,7 +78,7 @@ router.get(
   "/teachers",
 
   authMiddleware,
-
+  maintenanceMiddleware,
   getTeachers
 
 )
@@ -111,6 +116,38 @@ router.post(
   adminMiddleware,
 
   createUser
+
+)
+
+
+// ======================================
+// MODIFIER SON PROPRE PROFIL
+// PUT /api/users/profile
+// UTILISATEUR AUTHENTIFIÉ
+// ======================================
+router.put(
+
+  "/profile",
+
+  authMiddleware,
+
+  updateOwnProfile
+
+)
+
+
+// ======================================
+// MODIFIER SON PROPRE MOT DE PASSE
+// PUT /api/users/profile/password
+// UTILISATEUR AUTHENTIFIÉ
+// ======================================
+router.put(
+
+  "/profile/password",
+
+  authMiddleware,
+
+  changeOwnPassword
 
 )
 
