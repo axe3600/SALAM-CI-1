@@ -65,6 +65,7 @@ import NotificationsAdmin from "./pages/admin/Notifications"
 import StatisticsAdmin from "./pages/admin/Statistics"
 import SettingsAdmin from "./pages/admin/Settings"
 import ProfileAdmin from "./pages/admin/Profile"
+import Maintenance from "./pages/public/Maintenance"
 
 //MDP
 import ForgotPassword from "./pages/public/ForgotPassword"
@@ -91,6 +92,11 @@ function App() {
       <Route
         path="/register"
         element={<Register />}
+      />
+
+      <Route
+        path="/maintenance"
+        element={<Maintenance />}
       />
 
           {/* CONFERENCE */}
