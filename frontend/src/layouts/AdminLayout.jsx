@@ -1,250 +1,66 @@
-import { useEffect, useState } from "react"
+import { useEffect } from "react"
+import { useLocation } from "react-router-dom"
 
 import AdminSidebar from "../components/AdminSidebar"
 
-import API from "../services/api"
+import {
+  getSavedTheme,
+  applyTheme
+} from "../utils/theme"
 
 
 function AdminLayout({ children }) {
 
-  const [theme, setTheme] = useState("light")
-  const [animations, setAnimations] = useState(true)
+  const location = useLocation()
+
 
   // =====================================================
-  // APPLICATION DU THÈME
+  // RÉAPPLIQUER LE THÈME À CHAQUE CHANGEMENT DE PAGE
   // =====================================================
 
   useEffect(() => {
 
-    const applyAppearance = (
-      selectedTheme,
-      enableAnimations
-    ) => {
+    const theme = getSavedTheme()
 
-      const root =
-        document.documentElement
-
-      // =========================
-      // DÉTERMINER LE THÈME
-      // =========================
-
-      let darkMode = false
-
-      if (selectedTheme === "dark") {
-
-        darkMode = true
-
-      }
-
-      else if (selectedTheme === "system") {
-
-        darkMode =
-          window.matchMedia(
-            "(prefers-color-scheme: dark)"
-          ).matches
-
-      }
-
-      // =========================
-      // APPLIQUER DARK
-      // =========================
-
-      root.classList.toggle(
-        "dark",
-        darkMode
-      )
-
-      // =========================
-      // ANIMATIONS
-      // =========================
-
-      root.classList.toggle(
-        "no-animations",
-        !enableAnimations
-      )
-
-    }
-
-
-    applyAppearance(
-      theme,
-      animations
+    console.log(
+      "🎨 Thème appliqué sur la page :",
+      location.pathname,
+      "=>",
+      theme
     )
 
+    applyTheme(theme)
 
-    // =========================
-    // SYSTÈME
-    // SURVEILLER WINDOWS
-    // =========================
-
-    if (theme === "system") {
-
-      const mediaQuery =
-        window.matchMedia(
-          "(prefers-color-scheme: dark)"
-        )
-
-      const handleSystemTheme = () => {
-
-        applyAppearance(
-          "system",
-          animations
-        )
-
-      }
-
-      mediaQuery.addEventListener(
-        "change",
-        handleSystemTheme
-      )
-
-      return () => {
-
-        mediaQuery.removeEventListener(
-          "change",
-          handleSystemTheme
-        )
-
-      }
-
-    }
-
-  }, [
-    theme,
-    animations
-  ])
-
-
-  // =====================================================
-  // CHARGER LES PARAMÈTRES
-  // =====================================================
-
-  useEffect(() => {
-
-    const loadAppearance = async () => {
-
-      try {
-
-        const res =
-          await API.get("/settings")
-
-        const appearance =
-          res.data?.appearance
-
-        if (!appearance) {
-
-          return
-
-        }
-
-        setTheme(
-          appearance.theme ||
-          "light"
-        )
-
-        setAnimations(
-          appearance.animations !== false
-        )
-
-      }
-
-      catch (error) {
-
-        console.log(
-          "Impossible de charger l'apparence :",
-          error
-        )
-
-      }
-
-    }
-
-
-    loadAppearance()
-
-  }, [])
-
-
-  // =====================================================
-  // ÉCOUTER LES MODIFICATIONS DEPUIS SETTINGS
-  // =====================================================
-
-  useEffect(() => {
-
-    const handleAppearanceChange = (event) => {
-
-      const appearance =
-        event.detail
-
-      if (!appearance) {
-
-        return
-
-      }
-
-      setTheme(
-        appearance.theme ||
-        "light"
-      )
-
-      setAnimations(
-        appearance.animations !== false
-      )
-
-    }
-
-
-    window.addEventListener(
-      "appearanceChanged",
-      handleAppearanceChange
-    )
-
-    return () => {
-
-      window.removeEventListener(
-        "appearanceChanged",
-        handleAppearanceChange
-      )
-
-    }
-
-  }, [])
+  }, [location.pathname])
 
 
   return (
 
     <div
       className="
-      flex
-      h-screen
-      overflow-hidden
-      bg-[#f8fafc]
-      dark:bg-slate-900
-      transition-colors
-      duration-300
+        flex
+        h-screen
+        overflow-hidden
+        bg-[#f8fafc]
+        text-gray-900
       "
     >
 
       <AdminSidebar />
 
 
-      <div
+      <main
         className="
-        flex-1
-        overflow-y-auto
-        bg-[#f8fafc]
-        dark:bg-slate-900
-        p-10
-        text-gray-900
-        dark:text-gray-100
-        transition-colors
-        duration-300
+          flex-1
+          overflow-y-auto
+          p-10
+          bg-[#f8fafc]
         "
       >
 
         {children}
 
-      </div>
+      </main>
 
     </div>
 
