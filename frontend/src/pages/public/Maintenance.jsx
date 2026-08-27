@@ -27,8 +27,8 @@ import {
             "/settings"
           )
   
-          const settings = response.data
-  
+          const settings = response.data?.settings
+
           if (
             settings?.maintenance?.message
           ) {

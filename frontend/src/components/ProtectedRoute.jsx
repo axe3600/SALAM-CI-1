@@ -86,7 +86,7 @@ function ProtectedRoute({ children }) {
           "/settings"
         )
 
-        const settings = response.data
+        const settings = response.data?.settings
 
         const maintenanceEnabled =
           settings?.maintenance?.enabled === true
