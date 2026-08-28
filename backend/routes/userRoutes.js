@@ -16,8 +16,7 @@ import {
   deleteUser,
   toggleUserStatus,
   updateOwnProfile,
-  changeOwnPassword,
-  updateOwnProfile
+  changeOwnPassword
 
 } from "../controllers/userController.js"
 
