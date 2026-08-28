@@ -3,6 +3,7 @@ import express from "express"
 import authMiddleware from "../middleware/authMiddleware.js"
 import adminMiddleware from "../middleware/adminMiddleware.js"
 import maintenanceMiddleware from "../middleware/maintenanceMiddleware.js"
+import profileUpload from "../middleware/profileUploadMiddleware.js"
 
 import {
 
@@ -15,7 +16,8 @@ import {
   deleteUser,
   toggleUserStatus,
   updateOwnProfile,
-  changeOwnPassword
+  changeOwnPassword,
+  updateOwnProfile
 
 } from "../controllers/userController.js"
 
@@ -130,6 +132,8 @@ router.put(
   "/profile",
 
   authMiddleware,
+
+  profileUpload.single("profileImage"),
 
   updateOwnProfile
 

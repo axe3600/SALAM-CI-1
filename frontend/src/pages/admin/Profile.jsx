@@ -1,19 +1,20 @@
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 
 import AdminLayout from "../../layouts/AdminLayout"
-
-import API from "../../services/api"
 
 import {
   FaUser,
   FaEnvelope,
-  FaPhone,
-  FaLock,
+  FaCamera,
   FaShieldAlt,
   FaCheckCircle,
-  FaCalendarAlt,
-  FaSave
+  FaLock,
+  FaCog
 } from "react-icons/fa"
+
+import { useNavigate } from "react-router-dom"
+
+import API from "../../services/api"
 
 import {
   successToast,
@@ -23,93 +24,234 @@ import {
 
 function Profile() {
 
-  // =====================================================
-  // UTILISATEUR LOCAL
-  // =====================================================
+  const navigate = useNavigate()
 
-  const storedUser =
-    JSON.parse(
-      localStorage.getItem("user") || "null"
-    )
+  const fileInputRef = useRef(null)
 
-  // =====================================================
-  // ÉTATS
-  // =====================================================
+  const [user, setUser] = useState(() => {
 
-  const [user, setUser] =
-    useState(storedUser)
+    try {
+
+      return JSON.parse(
+        localStorage.getItem("user")
+      )
+
+    }
+
+    catch {
+
+      return null
+
+    }
+
+  })
+
+  const [name, setName] = useState(
+    user?.name || ""
+  )
+
+  const [email, setEmail] = useState(
+    user?.email || ""
+  )
+
+  const [preview, setPreview] = useState(
+    user?.profileImage || null
+  )
+
+  const [selectedFile, setSelectedFile] =
+    useState(null)
 
   const [loading, setLoading] =
-    useState(true)
-
-  const [saving, setSaving] =
     useState(false)
 
-  const [savingPassword, setSavingPassword] =
-    useState(false)
 
   // =====================================================
-  // INFORMATIONS
+  // RÉCUPÉRER LE PROFIL DEPUIS LE SERVEUR
   // =====================================================
 
-  const [name, setName] =
-    useState("")
+  useEffect(() => {
 
-  const [email, setEmail] =
-    useState("")
+    const loadProfile = async () => {
 
-  const [phone, setPhone] =
-    useState("")
+      try {
+
+        const response =
+          await API.get("/users/profile")
+
+        if (response.data?.user) {
+
+          const serverUser =
+            response.data.user
+
+          setUser(serverUser)
+
+          setName(
+            serverUser.name || ""
+          )
+
+          setEmail(
+            serverUser.email || ""
+          )
+
+          setPreview(
+            serverUser.profileImage || null
+          )
+
+          localStorage.setItem(
+            "user",
+            JSON.stringify(serverUser)
+          )
+
+        }
+
+      }
+
+      catch (error) {
+
+        console.error(
+          "Erreur récupération profil :",
+          error
+        )
+
+      }
+
+    }
+
+    loadProfile()
+
+  }, [])
+
 
   // =====================================================
-  // MOT DE PASSE
+  // CHOIX PHOTO
   // =====================================================
 
-  const [currentPassword, setCurrentPassword] =
-    useState("")
+  const handleImageChange = (event) => {
 
-  const [newPassword, setNewPassword] =
-    useState("")
+    const file =
+      event.target.files?.[0]
 
-  const [confirmPassword, setConfirmPassword] =
-    useState("")
+    if (!file) return
+
+    // =========================
+    // TYPE
+    // =========================
+
+    if (!file.type.startsWith("image/")) {
+
+      errorToast(
+        "Image invalide",
+        "Veuillez sélectionner une image."
+      )
+
+      return
+
+    }
+
+    // =========================
+    // TAILLE
+    // =========================
+
+    if (file.size > 5 * 1024 * 1024) {
+
+      errorToast(
+        "Image trop volumineuse",
+        "La photo doit faire au maximum 5 Mo."
+      )
+
+      return
+
+    }
+
+    // =========================
+    // APERÇU
+    // =========================
+
+    setSelectedFile(file)
+
+    const imageUrl =
+      URL.createObjectURL(file)
+
+    setPreview(imageUrl)
+
+  }
+
 
   // =====================================================
-  // RÉCUPÉRER LE PROFIL
+  // SAUVEGARDER
   // =====================================================
 
-  const loadProfile = async () => {
+  const handleSubmit = async (event) => {
+
+    event.preventDefault()
 
     try {
 
       setLoading(true)
 
-      const response =
-        await API.get(
-          "/users/profile"
+      const formData =
+        new FormData()
+
+      formData.append(
+        "name",
+        name
+      )
+
+      formData.append(
+        "email",
+        email
+      )
+
+      if (selectedFile) {
+
+        formData.append(
+          "profileImage",
+          selectedFile
         )
 
-      const profile =
+      }
+
+      const response =
+        await API.put(
+          "/users/profile",
+          formData
+        )
+
+      const updatedUser =
         response.data.user
 
-      setUser(profile)
+      // =========================
+      // ÉTAT
+      // =========================
+
+      setUser(updatedUser)
 
       setName(
-        profile?.name || ""
+        updatedUser.name || ""
       )
 
       setEmail(
-        profile?.email || ""
+        updatedUser.email || ""
       )
 
-      setPhone(
-        profile?.phone || ""
+      setPreview(
+        updatedUser.profileImage || null
       )
 
-      // Mise à jour localStorage
+      setSelectedFile(null)
+
+      // =========================
+      // LOCAL STORAGE
+      // =========================
+
       localStorage.setItem(
         "user",
-        JSON.stringify(profile)
+        JSON.stringify(updatedUser)
+      )
+
+      successToast(
+        "Profil",
+        "Vos informations ont été enregistrées."
       )
 
     }
@@ -117,26 +259,15 @@ function Profile() {
     catch (error) {
 
       console.error(
-        "ERREUR CHARGEMENT PROFIL :",
+        "Erreur sauvegarde profil :",
         error
       )
 
-      // On garde les données locales
-      if (storedUser) {
-
-        setName(
-          storedUser.name || ""
-        )
-
-        setEmail(
-          storedUser.email || ""
-        )
-
-        setPhone(
-          storedUser.phone || ""
-        )
-
-      }
+      errorToast(
+        "Profil",
+        error.response?.data?.message ||
+        "Impossible d'enregistrer votre profil."
+      )
 
     }
 
@@ -150,505 +281,235 @@ function Profile() {
 
 
   // =====================================================
-  // CHARGEMENT
-  // =====================================================
-
-  useEffect(() => {
-
-    loadProfile()
-
-  }, [])
-
-
-  // =====================================================
-  // MODIFIER INFORMATIONS
-  // =====================================================
-
-  const handleUpdateProfile =
-    async (e) => {
-
-      e.preventDefault()
-
-      if (!name.trim()) {
-
-        errorToast(
-          "Profil",
-          "Le nom est obligatoire."
-        )
-
-        return
-
-      }
-
-      if (!email.trim()) {
-
-        errorToast(
-          "Profil",
-          "L'email est obligatoire."
-        )
-
-        return
-
-      }
-
-      try {
-
-        setSaving(true)
-
-        const response =
-          await API.put(
-
-            "/users/profile",
-
-            {
-
-              name:
-                name.trim(),
-
-              email:
-                email.trim(),
-
-              phone:
-                phone.trim()
-
-            }
-
-          )
-
-        const updatedUser =
-          response.data.user
-
-        setUser(
-          updatedUser
-        )
-
-        localStorage.setItem(
-
-          "user",
-
-          JSON.stringify(
-            updatedUser
-          )
-
-        )
-
-        successToast(
-
-          "Profil",
-
-          "Vos informations ont été mises à jour."
-
-        )
-
-      }
-
-      catch (error) {
-
-        console.error(
-          "ERREUR MODIFICATION PROFIL :",
-          error
-        )
-
-        errorToast(
-
-          "Profil",
-
-          error.response?.data?.message ||
-          "Impossible de modifier votre profil."
-
-        )
-
-      }
-
-      finally {
-
-        setSaving(false)
-
-      }
-
-    }
-
-
-  // =====================================================
-  // MODIFIER MOT DE PASSE
-  // =====================================================
-
-  const handleChangePassword =
-    async (e) => {
-
-      e.preventDefault()
-
-      if (
-        !currentPassword ||
-        !newPassword ||
-        !confirmPassword
-      ) {
-
-        errorToast(
-
-          "Sécurité",
-
-          "Veuillez remplir tous les champs."
-
-        )
-
-        return
-
-      }
-
-      if (
-        newPassword.length < 6
-      ) {
-
-        errorToast(
-
-          "Sécurité",
-
-          "Le nouveau mot de passe doit contenir au moins 6 caractères."
-
-        )
-
-        return
-
-      }
-
-      if (
-        newPassword !== confirmPassword
-      ) {
-
-        errorToast(
-
-          "Sécurité",
-
-          "Les deux nouveaux mots de passe ne correspondent pas."
-
-        )
-
-        return
-
-      }
-
-      try {
-
-        setSavingPassword(true)
-
-        const response =
-          await API.put(
-
-            "/users/profile/password",
-
-            {
-
-              currentPassword,
-
-              newPassword
-
-            }
-
-          )
-
-        successToast(
-
-          "Sécurité",
-
-          response.data.message ||
-          "Mot de passe modifié avec succès."
-
-        )
-
-        // Nettoyage
-        setCurrentPassword("")
-        setNewPassword("")
-        setConfirmPassword("")
-
-        // Le backend invalide la session.
-        // On déconnecte après un court délai.
-
-        setTimeout(() => {
-
-          localStorage.removeItem(
-            "token"
-          )
-
-          localStorage.removeItem(
-            "user"
-          )
-
-          window.location.replace(
-            "/login"
-          )
-
-        }, 1800)
-
-      }
-
-      catch (error) {
-
-        console.error(
-          "ERREUR MOT DE PASSE :",
-          error
-        )
-
-        errorToast(
-
-          "Sécurité",
-
-          error.response?.data?.message ||
-          "Impossible de modifier le mot de passe."
-
-        )
-
-      }
-
-      finally {
-
-        setSavingPassword(false)
-
-      }
-
-    }
-
-
-  // =====================================================
-  // INITIALES
+  // INITIAL
   // =====================================================
 
   const initial =
-    user?.name
-      ?.trim()
-      ?.charAt(0)
-      ?.toUpperCase() || "A"
+    user?.name?.charAt(0)?.toUpperCase() || "A"
 
-
-  // =====================================================
-  // AFFICHAGE
-  // =====================================================
 
   return (
 
     <AdminLayout>
 
-      {/* =================================================
-          HEADER
-      ================================================= */}
+      {/* ================================================= */}
+      {/* HEADER */}
+      {/* ================================================= */}
 
       <div>
 
-        <h1 className="
-          text-4xl
-          md:text-5xl
-          font-bold
-          text-gray-900
-          dark:text-white
-        ">
-
+        <h1 className="text-5xl font-bold">
           Mon Profil
-
         </h1>
 
-        <p className="
-          text-gray-500
-          dark:text-gray-400
-          mt-3
-        ">
-
-          Gérez vos informations administrateur.
-
+        <p className="text-gray-500 mt-3">
+          Gérez vos informations personnelles
+          et votre compte administrateur.
         </p>
 
       </div>
 
 
-      {/* =================================================
-          CONTENU
-      ================================================= */}
+      {/* ================================================= */}
+      {/* CONTENU */}
+      {/* ================================================= */}
 
-      <div className="
-        grid
-        lg:grid-cols-3
-        gap-8
-        mt-10
-      ">
+      <form
+        onSubmit={handleSubmit}
+        className="mt-10 space-y-8"
+      >
 
+        <div className="grid lg:grid-cols-3 gap-8">
 
-        {/* =================================================
-            CARTE PROFIL
-        ================================================= */}
-
-        <div className="
-          bg-white
-          dark:bg-[#1e293b]
-          rounded-3xl
-          shadow-sm
-          dark:shadow-none
-          border
-          border-transparent
-          dark:border-slate-700
-          p-8
-        ">
+          {/* ================================================= */}
+          {/* CARTE PROFIL */}
+          {/* ================================================= */}
 
           <div className="
-            flex
-            flex-col
-            items-center
-            text-center
-          ">
-
-            {/* AVATAR */}
-
-            <div className="
-              w-32
-              h-32
-              rounded-full
-              bg-gradient-to-br
-              from-purple-600
-              to-indigo-600
-              text-white
-              flex
-              items-center
-              justify-center
-              text-5xl
-              font-bold
-              shadow-xl
-            ">
-
-              {initial}
-
-            </div>
-
-
-            {/* NOM */}
-
-            <h2 className="
-              text-2xl
-              font-bold
-              text-gray-900
-              dark:text-white
-              mt-6
-            ">
-
-              {loading
-                ? "Chargement..."
-                : user?.name
-              }
-
-            </h2>
-
-
-            {/* EMAIL */}
-
-            <p className="
-              text-gray-500
-              dark:text-gray-400
-              mt-2
-              break-all
-            ">
-
-              {user?.email}
-
-            </p>
-
-
-            {/* BADGE */}
+            bg-white
+            rounded-3xl
+            shadow-sm
+            p-8
+            "
+          >
 
             <div className="
-              mt-5
-              px-5
-              py-2
-              rounded-full
-              bg-purple-100
-              dark:bg-purple-900/30
-              text-purple-700
-              dark:text-purple-300
               flex
+              flex-col
               items-center
-              gap-2
+              text-center
             ">
 
-              <FaShieldAlt />
+              {/* PHOTO */}
 
-              Administrateur
+              <div className="relative">
 
-            </div>
+                <div className="
+                  w-36
+                  h-36
+                  rounded-full
+                  overflow-hidden
+                  bg-purple-600
+                  text-white
+                  flex
+                  items-center
+                  justify-center
+                  text-5xl
+                  font-bold
+                  shadow-lg
+                ">
+
+                  {preview ? (
+
+                    <img
+                      src={preview}
+                      alt="Photo de profil"
+                      className="
+                        w-full
+                        h-full
+                        object-cover
+                      "
+                    />
+
+                  ) : (
+
+                    initial
+
+                  )}
+
+                </div>
 
 
-            {/* STATUT */}
+                {/* BOUTON CAMÉRA */}
 
-            <div className="
-              mt-4
-              flex
-              items-center
-              gap-2
-              text-green-600
-              dark:text-green-400
-            ">
+                <button
+                  type="button"
+                  onClick={() =>
+                    fileInputRef.current?.click()
+                  }
+                  className="
+                    absolute
+                    bottom-1
+                    right-1
+                    bg-purple-600
+                    hover:bg-purple-700
+                    text-white
+                    w-12
+                    h-12
+                    rounded-full
+                    flex
+                    items-center
+                    justify-center
+                    shadow-lg
+                    transition
+                  "
+                  title="Modifier la photo"
+                >
 
-              <FaCheckCircle />
+                  <FaCamera />
 
-              Compte actif
+                </button>
+
+
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageChange}
+                  className="hidden"
+                />
+
+              </div>
+
+
+              <h2 className="
+                text-2xl
+                font-bold
+                mt-6
+              ">
+
+                {user?.name}
+
+              </h2>
+
+
+              <p className="
+                text-gray-500
+                mt-2
+              ">
+
+                Administrateur SALAM CI
+
+              </p>
+
+
+              <div className="
+                mt-4
+                px-4
+                py-2
+                rounded-full
+                bg-purple-100
+                text-purple-600
+                flex
+                items-center
+                gap-2
+              ">
+
+                <FaShieldAlt />
+
+                Administrateur
+
+              </div>
+
+
+              {selectedFile && (
+
+                <p className="
+                  text-sm
+                  text-purple-600
+                  mt-4
+                  font-medium
+                ">
+
+                  Nouvelle photo sélectionnée
+
+                </p>
+
+              )}
 
             </div>
 
           </div>
 
-        </div>
 
+          {/* ================================================= */}
+          {/* INFORMATIONS */}
+          {/* ================================================= */}
 
-        {/* =================================================
-            INFORMATIONS PERSONNELLES
-        ================================================= */}
-
-        <div className="
-          lg:col-span-2
-          bg-white
-          dark:bg-[#1e293b]
-          rounded-3xl
-          shadow-sm
-          dark:shadow-none
-          border
-          border-transparent
-          dark:border-slate-700
-          p-8
-        ">
-
-          <div className="mb-8">
+          <div className="
+            lg:col-span-2
+            bg-white
+            rounded-3xl
+            shadow-sm
+            p-8
+          ">
 
             <h2 className="
               text-2xl
               font-bold
-              text-gray-900
-              dark:text-white
+              mb-8
             ">
 
               Informations personnelles
 
             </h2>
 
-            <p className="
-              text-gray-500
-              dark:text-gray-400
-              mt-2
-            ">
-
-              Modifiez les informations de votre compte.
-
-            </p>
-
-          </div>
-
-
-          <form
-            onSubmit={
-              handleUpdateProfile
-            }
-          >
 
             <div className="
               grid
               md:grid-cols-2
               gap-6
             ">
-
 
               {/* NOM */}
 
@@ -658,17 +519,13 @@ function Profile() {
                   block
                   mb-2
                   font-medium
-                  text-gray-700
-                  dark:text-gray-200
                 ">
 
                   Nom complet
 
                 </label>
 
-                <div className="
-                  relative
-                ">
+                <div className="relative">
 
                   <FaUser className="
                     absolute
@@ -681,25 +538,15 @@ function Profile() {
                   <input
                     type="text"
                     value={name}
-                    onChange={
-                      (e) =>
-                        setName(
-                          e.target.value
-                        )
+                    onChange={(e) =>
+                      setName(e.target.value)
                     }
                     className="
                       w-full
                       border
-                      border-gray-200
-                      dark:border-slate-600
-                      bg-white
-                      dark:bg-slate-800
-                      text-gray-900
-                      dark:text-white
                       rounded-2xl
-                      py-4
-                      pl-12
-                      pr-4
+                      p-4
+                      pl-11
                       outline-none
                       focus:ring-2
                       focus:ring-purple-500
@@ -719,17 +566,13 @@ function Profile() {
                   block
                   mb-2
                   font-medium
-                  text-gray-700
-                  dark:text-gray-200
                 ">
 
                   Email
 
                 </label>
 
-                <div className="
-                  relative
-                ">
+                <div className="relative">
 
                   <FaEnvelope className="
                     absolute
@@ -742,87 +585,15 @@ function Profile() {
                   <input
                     type="email"
                     value={email}
-                    onChange={
-                      (e) =>
-                        setEmail(
-                          e.target.value
-                        )
+                    onChange={(e) =>
+                      setEmail(e.target.value)
                     }
                     className="
                       w-full
                       border
-                      border-gray-200
-                      dark:border-slate-600
-                      bg-white
-                      dark:bg-slate-800
-                      text-gray-900
-                      dark:text-white
                       rounded-2xl
-                      py-4
-                      pl-12
-                      pr-4
-                      outline-none
-                      focus:ring-2
-                      focus:ring-purple-500
-                    "
-                  />
-
-                </div>
-
-              </div>
-
-
-              {/* TELEPHONE */}
-
-              <div>
-
-                <label className="
-                  block
-                  mb-2
-                  font-medium
-                  text-gray-700
-                  dark:text-gray-200
-                ">
-
-                  Téléphone
-
-                </label>
-
-                <div className="
-                  relative
-                ">
-
-                  <FaPhone className="
-                    absolute
-                    left-4
-                    top-1/2
-                    -translate-y-1/2
-                    text-gray-400
-                  " />
-
-                  <input
-                    type="tel"
-                    value={phone}
-                    onChange={
-                      (e) =>
-                        setPhone(
-                          e.target.value
-                        )
-                    }
-                    placeholder="+225..."
-                    className="
-                      w-full
-                      border
-                      border-gray-200
-                      dark:border-slate-600
-                      bg-white
-                      dark:bg-slate-800
-                      text-gray-900
-                      dark:text-white
-                      rounded-2xl
-                      py-4
-                      pl-12
-                      pr-4
+                      p-4
+                      pl-11
                       outline-none
                       focus:ring-2
                       focus:ring-purple-500
@@ -836,7 +607,7 @@ function Profile() {
             </div>
 
 
-            {/* BOUTON */}
+            {/* ENREGISTRER */}
 
             <div className="
               flex
@@ -846,28 +617,23 @@ function Profile() {
 
               <button
                 type="submit"
-                disabled={saving}
+                disabled={loading}
                 className="
-                  flex
-                  items-center
-                  gap-3
                   bg-gradient-to-r
                   from-purple-600
                   to-indigo-600
                   hover:opacity-90
-                  disabled:opacity-60
                   text-white
-                  px-7
+                  px-8
                   py-4
                   rounded-2xl
                   font-semibold
                   transition
+                  disabled:opacity-50
                 "
               >
 
-                <FaSave />
-
-                {saving
+                {loading
                   ? "Enregistrement..."
                   : "Enregistrer les modifications"
                 }
@@ -876,280 +642,152 @@ function Profile() {
 
             </div>
 
-          </form>
+          </div>
 
         </div>
 
-      </div>
 
+        {/* ================================================= */}
+        {/* SÉCURITÉ */}
+        {/* ================================================= */}
 
-      {/* =================================================
-          SÉCURITÉ
-      ================================================= */}
-
-      <div className="
-        bg-white
-        dark:bg-[#1e293b]
-        rounded-3xl
-        shadow-sm
-        dark:shadow-none
-        border
-        border-transparent
-        dark:border-slate-700
-        p-8
-        mt-8
-      ">
-
-        <div className="mb-8">
+        <div className="
+          bg-white
+          rounded-3xl
+          shadow-sm
+          p-8
+        ">
 
           <h2 className="
             text-2xl
             font-bold
-            text-gray-900
-            dark:text-white
+            mb-6
           ">
 
-            Sécurité
+            Sécurité du compte
 
           </h2>
 
-          <p className="
-            text-gray-500
-            dark:text-gray-400
-            mt-2
+
+          <div className="
+            flex
+            flex-col
+            md:flex-row
+            md:items-center
+            md:justify-between
+            gap-6
+            border
+            rounded-2xl
+            p-6
           ">
 
-            Modifiez le mot de passe de votre compte administrateur.
+            <div className="
+              flex
+              items-center
+              gap-4
+            ">
 
-          </p>
+              <div className="
+                w-12
+                h-12
+                rounded-full
+                bg-purple-100
+                text-purple-600
+                flex
+                items-center
+                justify-center
+              ">
+
+                <FaLock />
+
+              </div>
+
+
+              <div>
+
+                <h3 className="font-bold">
+
+                  Mot de passe
+
+                </h3>
+
+                <p className="
+                  text-gray-500
+                  text-sm
+                  mt-1
+                ">
+
+                  Gérez votre mot de passe
+                  depuis les paramètres de sécurité.
+
+                </p>
+
+              </div>
+
+            </div>
+
+
+            <button
+              type="button"
+              onClick={() =>
+                navigate("/admin-settings")
+              }
+              className="
+                flex
+                items-center
+                justify-center
+                gap-2
+                border
+                border-purple-500
+                text-purple-600
+                px-6
+                py-3
+                rounded-xl
+                hover:bg-purple-50
+                transition
+              "
+            >
+
+              <FaCog />
+
+              Paramètres de sécurité
+
+            </button>
+
+          </div>
 
         </div>
 
 
-        <form
-          onSubmit={
-            handleChangePassword
-          }
-        >
-
-          <div className="
-            grid
-            md:grid-cols-3
-            gap-6
-          ">
-
-            <input
-              type="password"
-              value={currentPassword}
-              onChange={
-                (e) =>
-                  setCurrentPassword(
-                    e.target.value
-                  )
-              }
-              placeholder="Mot de passe actuel"
-              className="
-                w-full
-                border
-                border-gray-200
-                dark:border-slate-600
-                bg-white
-                dark:bg-slate-800
-                text-gray-900
-                dark:text-white
-                rounded-2xl
-                p-4
-                outline-none
-                focus:ring-2
-                focus:ring-purple-500
-              "
-            />
-
-            <input
-              type="password"
-              value={newPassword}
-              onChange={
-                (e) =>
-                  setNewPassword(
-                    e.target.value
-                  )
-              }
-              placeholder="Nouveau mot de passe"
-              className="
-                w-full
-                border
-                border-gray-200
-                dark:border-slate-600
-                bg-white
-                dark:bg-slate-800
-                text-gray-900
-                dark:text-white
-                rounded-2xl
-                p-4
-                outline-none
-                focus:ring-2
-                focus:ring-purple-500
-              "
-            />
-
-            <input
-              type="password"
-              value={confirmPassword}
-              onChange={
-                (e) =>
-                  setConfirmPassword(
-                    e.target.value
-                  )
-              }
-              placeholder="Confirmer le mot de passe"
-              className="
-                w-full
-                border
-                border-gray-200
-                dark:border-slate-600
-                bg-white
-                dark:bg-slate-800
-                text-gray-900
-                dark:text-white
-                rounded-2xl
-                p-4
-                outline-none
-                focus:ring-2
-                focus:ring-purple-500
-              "
-            />
-
-          </div>
-
-
-          <button
-            type="submit"
-            disabled={
-              savingPassword
-            }
-            className="
-              mt-6
-              flex
-              items-center
-              gap-3
-              bg-gradient-to-r
-              from-purple-600
-              to-indigo-600
-              hover:opacity-90
-              disabled:opacity-60
-              text-white
-              px-7
-              py-4
-              rounded-2xl
-              font-semibold
-            "
-          >
-
-            <FaLock />
-
-            {savingPassword
-              ? "Modification..."
-              : "Modifier le mot de passe"
-            }
-
-          </button>
-
-        </form>
-
-      </div>
-
-
-      {/* =================================================
-          INFORMATIONS DU COMPTE
-      ================================================= */}
-
-      <div className="
-        bg-white
-        dark:bg-[#1e293b]
-        rounded-3xl
-        shadow-sm
-        dark:shadow-none
-        border
-        border-transparent
-        dark:border-slate-700
-        p-8
-        mt-8
-      ">
-
-        <h2 className="
-          text-2xl
-          font-bold
-          text-gray-900
-          dark:text-white
-          mb-6
-        ">
-
-          Informations du compte
-
-        </h2>
-
+        {/* ================================================= */}
+        {/* STATUT */}
+        {/* ================================================= */}
 
         <div className="
-          grid
-          md:grid-cols-3
-          gap-6
+          bg-white
+          rounded-3xl
+          shadow-sm
+          p-8
         ">
 
-
-          {/* RÔLE */}
-
-          <div className="
-            flex
-            items-center
-            gap-4
-            p-5
-            rounded-2xl
-            bg-gray-50
-            dark:bg-slate-800
+          <h2 className="
+            text-2xl
+            font-bold
+            mb-6
           ">
 
-            <FaShieldAlt className="
-              text-purple-600
-              text-xl
-            " />
+            État du compte
 
-            <div>
+          </h2>
 
-              <p className="
-                text-sm
-                text-gray-500
-                dark:text-gray-400
-              ">
-
-                Rôle
-
-              </p>
-
-              <p className="
-                font-semibold
-                text-gray-900
-                dark:text-white
-              ">
-
-                Administrateur
-
-              </p>
-
-            </div>
-
-          </div>
-
-
-          {/* STATUT */}
 
           <div className="
             flex
             items-center
             gap-4
-            p-5
+            border
             rounded-2xl
-            bg-gray-50
-            dark:bg-slate-800
+            p-5
           ">
 
             <FaCheckCircle className="
@@ -1159,74 +797,19 @@ function Profile() {
 
             <div>
 
+              <p className="font-semibold">
+
+                Compte actif
+
+              </p>
+
               <p className="
-                text-sm
                 text-gray-500
-                dark:text-gray-400
-              ">
-
-                Statut
-
-              </p>
-
-              <p className="
-                font-semibold
-                text-green-600
-                dark:text-green-400
-              ">
-
-                Actif
-
-              </p>
-
-            </div>
-
-          </div>
-
-
-          {/* DATE */}
-
-          <div className="
-            flex
-            items-center
-            gap-4
-            p-5
-            rounded-2xl
-            bg-gray-50
-            dark:bg-slate-800
-          ">
-
-            <FaCalendarAlt className="
-              text-indigo-500
-              text-xl
-            " />
-
-            <div>
-
-              <p className="
                 text-sm
-                text-gray-500
-                dark:text-gray-400
               ">
 
-                Compte créé
-
-              </p>
-
-              <p className="
-                font-semibold
-                text-gray-900
-                dark:text-white
-              ">
-
-                {user?.createdAt
-                  ? new Date(
-                      user.createdAt
-                    ).toLocaleDateString(
-                      "fr-FR"
-                    )
-                  : "-"
-                }
+                Votre compte administrateur
+                est actuellement actif.
 
               </p>
 
@@ -1236,7 +819,7 @@ function Profile() {
 
         </div>
 
-      </div>
+      </form>
 
     </AdminLayout>
 

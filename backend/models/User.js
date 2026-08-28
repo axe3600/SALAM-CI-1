@@ -51,6 +51,19 @@ const userSchema = new mongoose.Schema(
     },
 
     // =========================
+    // PHOTO DE PROFIL
+    // =========================
+    profileImage: {
+
+      type: String,
+
+      default: null,
+
+      trim: true
+
+    },
+
+    // =========================
     // MOT DE PASSE
     // =========================
     password: {

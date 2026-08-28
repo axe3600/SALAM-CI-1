@@ -1,5 +1,7 @@
 import User from "../models/User.js"
 import bcrypt from "bcryptjs"
+import fs from "fs"
+import path from "path"
 
 // ======================================
 // CRÉER UN UTILISATEUR
@@ -857,89 +859,17 @@ export const updateOwnProfile = async (req, res) => {
 
   try {
 
-    const userId = req.user._id
-
-    const {
-      name,
-      email,
-      phone
-    } = req.body
-
     // =========================
-    // VALIDATION
+    // UTILISATEUR CONNECTÉ
     // =========================
 
-    if (!name || !email) {
-
-      return res.status(400).json({
-
-        message:
-          "Le nom et l'email sont obligatoires."
-
-      })
-
-    }
-
-    // =========================
-    // NORMALISATION
-    // =========================
-
-    const cleanName =
-      name.trim()
-
-    const normalizedEmail =
-      email.trim().toLowerCase()
-
-    const cleanPhone =
-      phone?.trim() || null
-
-    if (!cleanName) {
-
-      return res.status(400).json({
-
-        message:
-          "Le nom est obligatoire."
-
-      })
-
-    }
-
-    // =========================
-    // EMAIL DÉJÀ UTILISÉ
-    // =========================
-
-    const emailExists =
-      await User.findOne({
-
-        email: normalizedEmail,
-
-        _id: {
-          $ne: userId
-        }
-
-      })
-
-    if (emailExists) {
-
-      return res.status(400).json({
-
-        message:
-          "Cet email est déjà utilisé par un autre compte."
-
-      })
-
-    }
-
-    // =========================
-    // RECHERCHE UTILISATEUR
-    // =========================
-
-    const user =
-      await User.findById(userId)
+    const user = await User.findById(req.user._id)
 
     if (!user) {
 
       return res.status(404).json({
+
+        success: false,
 
         message:
           "Utilisateur introuvable."
@@ -949,17 +879,156 @@ export const updateOwnProfile = async (req, res) => {
     }
 
     // =========================
-    // MODIFICATION
+    // DONNÉES
     // =========================
 
-    user.name =
-      cleanName
+    const {
+      name,
+      email
+    } = req.body
 
-    user.email =
-      normalizedEmail
+    // =========================
+    // NOM
+    // =========================
 
-    user.phone =
-      cleanPhone
+    if (name !== undefined) {
+
+      const cleanName =
+        name.trim()
+
+      if (!cleanName) {
+
+        return res.status(400).json({
+
+          success: false,
+
+          message:
+            "Le nom ne peut pas être vide."
+
+        })
+
+      }
+
+      user.name = cleanName
+
+    }
+
+    // =========================
+    // EMAIL
+    // =========================
+
+    if (email !== undefined) {
+
+      const normalizedEmail =
+        email.trim().toLowerCase()
+
+      if (!normalizedEmail) {
+
+        return res.status(400).json({
+
+          success: false,
+
+          message:
+            "L'email ne peut pas être vide."
+
+        })
+
+      }
+
+      // Vérifier si l'email appartient
+      // déjà à quelqu'un d'autre
+
+      const emailExists =
+        await User.findOne({
+
+          email: normalizedEmail,
+
+          _id: {
+            $ne: user._id
+          }
+
+        })
+
+      if (emailExists) {
+
+        return res.status(400).json({
+
+          success: false,
+
+          message:
+            "Cet email est déjà utilisé."
+
+        })
+
+      }
+
+      user.email =
+        normalizedEmail
+
+    }
+
+    // =========================
+    // PHOTO DE PROFIL
+    // =========================
+
+    if (req.file) {
+
+      // Ancienne photo
+
+      const oldImage =
+        user.profileImage
+
+      // Nouvelle URL
+
+      const imageUrl =
+        `${req.protocol}://${req.get("host")}/uploads/${req.file.filename}`
+
+      user.profileImage =
+        imageUrl
+
+      // Supprimer ancienne photo
+      // si elle appartient à notre dossier uploads
+
+      if (
+        oldImage &&
+        oldImage.includes("/uploads/")
+      ) {
+
+        try {
+
+          const oldFilename =
+            oldImage.split("/uploads/")[1]
+
+          const oldPath =
+            path.join(
+              "uploads",
+              oldFilename
+            )
+
+          if (fs.existsSync(oldPath)) {
+
+            fs.unlinkSync(oldPath)
+
+          }
+
+        }
+
+        catch (deleteError) {
+
+          console.error(
+            "Erreur suppression ancienne photo :",
+            deleteError.message
+          )
+
+        }
+
+      }
+
+    }
+
+    // =========================
+    // SAUVEGARDE
+    // =========================
 
     await user.save()
 
@@ -986,7 +1055,7 @@ export const updateOwnProfile = async (req, res) => {
       success: true,
 
       message:
-        "Profil modifié avec succès.",
+        "Profil mis à jour avec succès.",
 
       user: safeUser
 
@@ -1002,6 +1071,8 @@ export const updateOwnProfile = async (req, res) => {
     )
 
     return res.status(500).json({
+
+      success: false,
 
       message:
         "Impossible de modifier votre profil."
