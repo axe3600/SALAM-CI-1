@@ -980,11 +980,13 @@ export const updateOwnProfile = async (req, res) => {
 
       // Nouvelle URL
 
+      const forwardedProto =
+      req.get("x-forwarded-proto")?.split(",")[0] || req.protocol
+    
       const imageUrl =
-        `${req.protocol}://${req.get("host")}/uploads/${req.file.filename}`
-
-      user.profileImage =
-        imageUrl
+      `${forwardedProto}://${req.get("host")}/uploads/${req.file.filename}`
+    
+      user.profileImage = imageUrl
 
       // Supprimer ancienne photo
       // si elle appartient à notre dossier uploads
