@@ -107,6 +107,17 @@ const userSchema = new mongoose.Schema(
     },
 
     // =========================
+    // DERNIÈRE CONNEXION
+    // =========================
+    lastLoginAt: {
+
+      type: Date,
+
+      default: null
+
+    },
+
+    // =========================
     // COMPTE ACTIF
     // =========================
     isActive: {

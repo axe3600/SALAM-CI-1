@@ -14,13 +14,13 @@ import { setIO } from "./socket/socketManager.js";
 // =========================
 // IMPORT ROUTES
 // =========================
-import authRoutes from "./routes/authRoutes.js"
-//import dashboardRoutes from "./routes/dashboardRoutes.js";
-import userRoutes from "./routes/userRoutes.js"
-import courseRoutes from "./routes/courseRoutes.js"
-import conferenceRoutes from "./routes/conferenceRoutes.js"
+import authRoutes from "./routes/authRoutes.js";
+import dashboardRoutes from "./routes/dashboardRoutes.js";
+import userRoutes from "./routes/userRoutes.js";
+import courseRoutes from "./routes/courseRoutes.js";
+import conferenceRoutes from "./routes/conferenceRoutes.js";
 import conferenceRequestRoutes from "./routes/conferenceRequestRoutes.js";
-import categoryRoutes from "./routes/categoryRoutes.js"
+import categoryRoutes from "./routes/categoryRoutes.js";
 //fichiers (admin)
 import fileRoutes from "./routes/fileRoutes.js";
 
@@ -79,7 +79,7 @@ app.use(
 app.use("/api/auth", authRoutes)
 
 // Tableau de bord
-//app.use("/api/dashboard", dashboardRoutes);
+app.use("/api/dashboard", dashboardRoutes);
 
 // USERS
 app.use("/api/users", userRoutes)

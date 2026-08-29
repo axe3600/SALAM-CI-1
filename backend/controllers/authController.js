@@ -340,8 +340,11 @@ export const login = async (req, res) => {
     // =========================
     user.isOnline = true
 
+    user.lastLoginAt = new Date()
+    
     console.log("Avant save :", user.isOnline)
-
+    console.log("Dernière connexion :", user.lastLoginAt)
+    
     await user.save()
 
     console.log("Après save :", user.isOnline)
@@ -721,6 +724,8 @@ export const verifyTwoFactorLogin = async (req, res) => {
 
     user.isOnline = true
 
+    user.lastLoginAt = new Date()
+    
     await user.save()
 
     // =========================
