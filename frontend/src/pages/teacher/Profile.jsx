@@ -1,6 +1,10 @@
 import { useEffect, useRef, useState } from "react"
 import TeacherLayout from "../../layouts/TeacherLayout"
 import API from "../../services/api"
+import {
+  successToast,
+  errorToast
+} from "../../utils/toast"
 
 import {
   FaUser,
@@ -201,7 +205,7 @@ function Profile() {
 
     if (!file.type.startsWith("image/")) {
 
-      alert(
+      errorToast(
         "Veuillez sélectionner une image."
       )
 
@@ -211,7 +215,7 @@ function Profile() {
 
     if (file.size > 5 * 1024 * 1024) {
 
-      alert(
+      errorToast(
         "L'image ne doit pas dépasser 5 Mo."
       )
 
@@ -305,7 +309,7 @@ function Profile() {
 
       }
 
-      alert(
+      successToast(
         "Profil enregistré avec succès."
       )
 
@@ -318,10 +322,10 @@ function Profile() {
         error
       )
 
-      alert(
-        error.response?.data?.message ||
-        "Impossible d'enregistrer le profil."
-      )
+    errorToast(
+      error.response?.data?.message ||
+      "Impossible d'enregistrer le profil."
+    )
 
     }
 
