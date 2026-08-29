@@ -7,7 +7,11 @@ import adminMiddleware from "../middleware/adminMiddleware.js"
 import maintenanceMiddleware from "../middleware/maintenanceMiddleware.js"
 
 import {
-  getDashboardStats
+
+  getDashboardStats,
+
+  getTeacherDashboardStats
+
 } from "../controllers/dashboardController.js"
 
 
@@ -30,6 +34,24 @@ router.get(
   maintenanceMiddleware,
 
   getDashboardStats
+
+)
+
+
+// =====================================================
+// DASHBOARD ENSEIGNANT
+// GET /api/dashboard/teacher
+// =====================================================
+
+router.get(
+
+  "/teacher",
+
+  authMiddleware,
+
+  maintenanceMiddleware,
+
+  getTeacherDashboardStats
 
 )
 
