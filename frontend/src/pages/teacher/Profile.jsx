@@ -349,7 +349,7 @@ function Profile() {
       !confirmPassword
     ) {
 
-      alert(
+      errorToast(
         "Veuillez remplir tous les champs."
       )
 
@@ -359,7 +359,7 @@ function Profile() {
 
     if (newPassword !== confirmPassword) {
 
-      alert(
+      errorToast(
         "Les nouveaux mots de passe ne correspondent pas."
       )
 
@@ -369,7 +369,7 @@ function Profile() {
 
     if (newPassword.length < 6) {
 
-      alert(
+      errorToast(
         "Le nouveau mot de passe doit contenir au moins 6 caractères."
       )
 
@@ -390,10 +390,10 @@ function Profile() {
           }
         )
 
-      alert(
-        response.data?.message ||
-        "Mot de passe modifié avec succès."
-      )
+        successToast(
+          response.data?.message ||
+          "Mot de passe modifié avec succès."
+        )
 
       setCurrentPassword("")
 
@@ -410,7 +410,7 @@ function Profile() {
         error
       )
 
-      alert(
+      errorToast(
         error.response?.data?.message ||
         "Impossible de modifier le mot de passe."
       )
@@ -461,7 +461,7 @@ function Profile() {
         error
       )
 
-      alert(
+      errorToast(
         error.response?.data?.message ||
         "Impossible de configurer le 2FA."
       )
@@ -487,7 +487,7 @@ function Profile() {
       twoFactorCode.length !== 6
     ) {
 
-      alert(
+      errorToast(
         "Veuillez entrer le code à 6 chiffres."
       )
 
@@ -532,7 +532,7 @@ function Profile() {
 
       setTwoFactorCode("")
 
-      alert(
+      successToast(
         response.data?.message ||
         "Authentification à deux facteurs activée."
       )
@@ -546,7 +546,7 @@ function Profile() {
         error
       )
 
-      alert(
+      errorToast(
         error.response?.data?.message ||
         "Code 2FA incorrect."
       )
@@ -569,7 +569,7 @@ function Profile() {
 
     if (!disablePassword) {
 
-      alert(
+      errorToast(
         "Veuillez saisir votre mot de passe."
       )
 
@@ -608,7 +608,7 @@ function Profile() {
 
       setDisablePassword("")
 
-      alert(
+      successToast(
         response.data?.message ||
         "Authentification à deux facteurs désactivée."
       )
@@ -622,7 +622,7 @@ function Profile() {
         error
       )
 
-      alert(
+      errorToast(
         error.response?.data?.message ||
         "Impossible de désactiver le 2FA."
       )
