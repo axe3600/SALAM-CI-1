@@ -884,7 +884,9 @@ export const updateOwnProfile = async (req, res) => {
 
     const {
       name,
-      email
+      email,
+      phone,
+      specialty
     } = req.body
 
     // =========================
@@ -964,6 +966,34 @@ export const updateOwnProfile = async (req, res) => {
 
       user.email =
         normalizedEmail
+
+    }
+
+
+    // =====================================================
+    // TÉLÉPHONE
+    // =====================================================
+    if (phone !== undefined) {
+
+      const cleanPhone =
+        phone?.trim()
+
+      user.phone =
+        cleanPhone || null
+
+    }
+
+
+    // =====================================================
+    // SPÉCIALITÉ
+    // =====================================================
+    if (specialty !== undefined) {
+
+      const cleanSpecialty =
+        specialty?.trim()
+
+      user.specialty =
+        cleanSpecialty || null
 
     }
 

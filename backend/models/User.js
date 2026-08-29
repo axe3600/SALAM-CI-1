@@ -51,6 +51,19 @@ const userSchema = new mongoose.Schema(
     },
 
     // =========================
+    // SPÉCIALITÉ
+    // =========================
+    specialty: {
+
+      type: String,
+
+      default: null,
+
+      trim: true
+
+    },
+
+    // =========================
     // PHOTO DE PROFIL
     // =========================
     profileImage: {
