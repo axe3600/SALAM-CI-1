@@ -233,6 +233,28 @@ phoneResetExpires: {
 
       select: false
 
+    },
+
+    // =========================
+    // PRÉFÉRENCES NOTIFICATIONS
+    // =========================
+    notificationPreferences: {
+
+      newEnrollments: {
+        type: Boolean,
+        default: true
+      },
+
+      studentMessages: {
+        type: Boolean,
+        default: true
+      },
+
+      conferenceReminders: {
+        type: Boolean,
+        default: true
+      }
+
     }
 
   },

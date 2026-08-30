@@ -16,7 +16,8 @@ import {
   deleteUser,
   toggleUserStatus,
   updateOwnProfile,
-  changeOwnPassword
+  changeOwnPassword,
+  updateNotificationPreferences
 
 } from "../controllers/userController.js"
 
@@ -151,6 +152,22 @@ router.put(
   authMiddleware,
 
   changeOwnPassword
+
+)
+
+
+// ======================================
+// PRÉFÉRENCES DE NOTIFICATIONS
+// PUT /api/users/profile/notifications
+// UTILISATEUR AUTHENTIFIÉ
+// ======================================
+router.put(
+
+  "/profile/notifications",
+
+  authMiddleware,
+
+  updateNotificationPreferences
 
 )
 

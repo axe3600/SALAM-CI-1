@@ -77,6 +77,12 @@ function Profile() {
   const [savingProfile, setSavingProfile] =
     useState(false)
 
+  const [notificationPreferences, setNotificationPreferences] = useState({
+    newEnrollments: true,
+    studentMessages: true,
+    conferenceReminders: true
+  })
+
   // =====================================================
   // MOT DE PASSE
   // =====================================================
@@ -161,7 +167,15 @@ function Profile() {
           setTwoFactorEnabled(
             backendUser.twoFactorEnabled || false
           )
-
+          
+          setNotificationPreferences(
+            backendUser.notificationPreferences || {
+              newEnrollments: true,
+              studentMessages: true,
+              conferenceReminders: true
+            }
+          )
+          
           localStorage.setItem(
             "user",
             JSON.stringify(backendUser)
@@ -637,10 +651,123 @@ function Profile() {
 
   }
 
+
+// =====================================================
+// MODIFIER LES PRÉFÉRENCES DE NOTIFICATIONS
+// =====================================================
+const handleNotificationChange = async (
+  key,
+  value
+) => {
+
+  // =========================
+  // NOUVELLES PRÉFÉRENCES
+  // =========================
+
+  const previousPreferences =
+    notificationPreferences
+
+  const updatedPreferences = {
+
+    ...notificationPreferences,
+
+    [key]: value
+
+  }
+
+  // =========================
+  // MISE À JOUR IMMÉDIATE
+  // =========================
+
+  setNotificationPreferences(
+    updatedPreferences
+  )
+
+  try {
+
+    // =========================
+    // SAUVEGARDE BACKEND
+    // =========================
+
+    const response =
+      await API.put(
+        "/users/profile/notifications",
+        updatedPreferences
+      )
+
+    // =========================
+    // RÉCUPÉRER LA VALEUR
+    // RETOURNÉE PAR LE BACKEND
+    // =========================
+
+    if (
+      response.data?.notificationPreferences
+    ) {
+
+      setNotificationPreferences(
+        response.data.notificationPreferences
+      )
+
+    }
+
+    // =========================
+    // METTRE À JOUR LOCALSTORAGE
+    // =========================
+
+    const updatedUser = {
+
+      ...user,
+
+      notificationPreferences:
+        response.data?.notificationPreferences ||
+        updatedPreferences
+
+    }
+
+    setUser(updatedUser)
+
+    localStorage.setItem(
+      "user",
+      JSON.stringify(updatedUser)
+    )
+
+    // =========================
+    // TOAST
+    // =========================
+
+    successToast(
+      "Préférence de notification enregistrée."
+    )
+
+  }
+
+  catch (error) {
+
+    console.error(
+      "Erreur préférences notifications :",
+      error
+    )
+
+    // =========================
+    // ANNULER LA MODIFICATION
+    // =========================
+
+    setNotificationPreferences(
+      previousPreferences
+    )
+
+    errorToast(
+      error.response?.data?.message ||
+      "Impossible d'enregistrer la préférence."
+    )
+
+  }
+
+}
+  
   // =====================================================
   // INITIAL
   // =====================================================
-
   const initial =
     name?.charAt(0)?.toUpperCase() || "E"
 
@@ -1597,96 +1724,193 @@ function Profile() {
           </div>
 
 
-          {/* =================================================
-              NOTIFICATIONS
-          ================================================= */}
+{/* =====================================================
+    NOTIFICATIONS
+===================================================== */}
+<div
+  className="
+    bg-white
+    rounded-3xl
+    shadow-sm
+    border
+    border-gray-100
+    p-8
+    mt-8
+  "
+>
 
-          <div className="
-            bg-white
-            rounded-3xl
-            shadow-sm
-            border
-            border-gray-100
-            p-8
-            mt-8
-          ">
+  <div className="mb-6">
 
-            <div className="mb-6">
+    <h2 className="text-2xl font-bold">
+      Notifications
+    </h2>
 
-              <h2 className="
-                text-2xl
-                font-bold
-              ">
+    <p className="text-gray-500 mt-2">
+      Choisissez les notifications que vous souhaitez recevoir.
+    </p>
 
-                Notifications
+  </div>
 
-              </h2>
 
-              <p className="
-                text-gray-500
-                mt-2
-              ">
+  <div className="grid md:grid-cols-3 gap-4">
 
-                Choisissez les notifications que vous souhaitez recevoir.
 
-              </p>
+    {/* ================================================
+        NOUVELLES INSCRIPTIONS
+    ================================================ */}
 
-            </div>
+    <label
+      className="
+        flex
+        items-center
+        gap-3
+        p-4
+        rounded-2xl
+        border
+        border-gray-100
+        hover:bg-gray-50
+        transition
+        cursor-pointer
+      "
+    >
 
-            <div className="
-              grid
-              md:grid-cols-3
-              gap-4
-            ">
+      <input
+        type="checkbox"
+        checked={
+          notificationPreferences.newEnrollments
+        }
+        onChange={(event) =>
+          handleNotificationChange(
+            "newEnrollments",
+            event.target.checked
+          )
+        }
+        className="
+          w-5
+          h-5
+          accent-purple-600
+          cursor-pointer
+        "
+      />
 
-              {[
-                "Nouvelles inscriptions",
-                "Messages des étudiants",
-                "Rappels des conférences"
-              ].map((item) => (
+      <span
+        className="
+          text-sm
+          font-medium
+          text-gray-700
+        "
+      >
+        Nouvelles inscriptions
+      </span>
 
-                <label
-                  key={item}
-                  className="
-                    flex
-                    items-center
-                    gap-3
-                    p-4
-                    rounded-2xl
-                    border
-                    border-gray-100
-                    hover:bg-gray-50
-                    cursor-pointer
-                  "
-                >
+    </label>
 
-                  <input
-                    type="checkbox"
-                    defaultChecked
-                    className="
-                      w-5
-                      h-5
-                      accent-purple-600
-                    "
-                  />
 
-                  <span className="
-                    text-sm
-                    font-medium
-                    text-gray-700
-                  ">
+    {/* ================================================
+        MESSAGES DES ÉTUDIANTS
+    ================================================ */}
 
-                    {item}
+    <label
+      className="
+        flex
+        items-center
+        gap-3
+        p-4
+        rounded-2xl
+        border
+        border-gray-100
+        hover:bg-gray-50
+        transition
+        cursor-pointer
+      "
+    >
 
-                  </span>
+      <input
+        type="checkbox"
+        checked={
+          notificationPreferences.studentMessages
+        }
+        onChange={(event) =>
+          handleNotificationChange(
+            "studentMessages",
+            event.target.checked
+          )
+        }
+        className="
+          w-5
+          h-5
+          accent-purple-600
+          cursor-pointer
+        "
+      />
 
-                </label>
+      <span
+        className="
+          text-sm
+          font-medium
+          text-gray-700
+        "
+      >
+        Messages des étudiants
+      </span>
 
-              ))}
+    </label>
 
-            </div>
 
-          </div>
+    {/* ================================================
+        RAPPELS DES CONFÉRENCES
+    ================================================ */}
+
+    <label
+      className="
+        flex
+        items-center
+        gap-3
+        p-4
+        rounded-2xl
+        border
+        border-gray-100
+        hover:bg-gray-50
+        transition
+        cursor-pointer
+      "
+    >
+
+      <input
+        type="checkbox"
+        checked={
+          notificationPreferences.conferenceReminders
+        }
+        onChange={(event) =>
+          handleNotificationChange(
+            "conferenceReminders",
+            event.target.checked
+          )
+        }
+        className="
+          w-5
+          h-5
+          accent-purple-600
+          cursor-pointer
+        "
+      />
+
+      <span
+        className="
+          text-sm
+          font-medium
+          text-gray-700
+        "
+      >
+        Rappels des conférences
+      </span>
+
+    </label>
+
+
+  </div>
+
+</div>
 
         </>
 

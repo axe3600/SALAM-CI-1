@@ -1380,3 +1380,84 @@ export const changeOwnPassword = async (req, res) => {
   }
 
 }
+
+
+//Notification enseignant
+export const updateNotificationPreferences = async (req, res) => {
+
+  try {
+
+    const user = await User.findById(req.user._id)
+
+    if (!user) {
+
+      return res.status(404).json({
+
+        success: false,
+
+        message: "Utilisateur introuvable."
+
+      })
+
+    }
+
+    const {
+      newEnrollments,
+      studentMessages,
+      conferenceReminders
+    } = req.body
+
+    user.notificationPreferences = {
+
+      newEnrollments:
+        newEnrollments !== undefined
+          ? Boolean(newEnrollments)
+          : true,
+
+      studentMessages:
+        studentMessages !== undefined
+          ? Boolean(studentMessages)
+          : true,
+
+      conferenceReminders:
+        conferenceReminders !== undefined
+          ? Boolean(conferenceReminders)
+          : true
+
+    }
+
+    await user.save()
+
+    return res.status(200).json({
+
+      success: true,
+
+      message:
+        "Préférences de notifications enregistrées.",
+
+      notificationPreferences:
+        user.notificationPreferences
+
+    })
+
+  }
+
+  catch (error) {
+
+    console.error(
+      "ERREUR PRÉFÉRENCES NOTIFICATIONS :",
+      error
+    )
+
+    return res.status(500).json({
+
+      success: false,
+
+      message:
+        "Impossible d'enregistrer les préférences de notifications."
+
+    })
+
+  }
+
+}
