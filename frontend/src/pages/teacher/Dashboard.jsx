@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react"
+import { Link } from "react-router-dom"
 
 import TeacherLayout from "../../layouts/TeacherLayout"
 
@@ -540,55 +541,92 @@ function Dashboard() {
       {/* =====================================================
           MESSAGE RAPIDE
       ===================================================== */}
+<div className="grid md:grid-cols-2 gap-6 mt-8 mb-6">
 
-      <div className="grid md:grid-cols-2 gap-6 mt-8 mb-6">
+{/* ================================
+    BOX MES COURS
+================================= */}
 
-        <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
+<Link
+  to="/teacher-courses"
+  className="group bg-white rounded-3xl p-6 shadow-sm border border-gray-100
+             hover:shadow-xl hover:-translate-y-1
+             transition-all duration-300 cursor-pointer"
+>
 
-          <div className="w-12 h-12 rounded-2xl bg-blue-100 text-blue-600 flex items-center justify-center mb-4">
+  <div className="w-12 h-12 rounded-2xl bg-blue-100 text-blue-600
+                  flex items-center justify-center mb-4
+                  group-hover:scale-110 transition-transform duration-300">
 
-            <FaPlus />
+    <FaPlus />
 
-          </div>
+  </div>
 
-          <h3 className="text-xl font-bold">
+  <h3 className="text-xl font-bold group-hover:text-purple-600 transition-colors">
 
-            Développez votre espace de cours
+    Développez votre espace de cours
 
-          </h3>
+  </h3>
 
-          <p className="text-gray-500 mt-2">
+  <p className="text-gray-500 mt-2">
 
-            Créez et publiez de nouveaux contenus pour vos étudiants.
+    Créez et publiez de nouveaux contenus pour vos étudiants.
 
-          </p>
+  </p>
 
-        </div>
+  <div className="mt-4 text-sm font-semibold text-purple-600
+                  opacity-0 group-hover:opacity-100
+                  transition-opacity duration-300">
+
+    Accéder à mes cours →
+
+  </div>
+
+</Link>
 
 
-        <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
+{/* ================================
+    BOX CONFÉRENCES
+================================= */}
 
-          <div className="w-12 h-12 rounded-2xl bg-purple-100 text-purple-600 flex items-center justify-center mb-4">
+<Link
+  to="/teacher-conferences"
+  className="group bg-white rounded-3xl p-6 shadow-sm border border-gray-100
+             hover:shadow-xl hover:-translate-y-1
+             transition-all duration-300 cursor-pointer"
+>
 
-            <FaVideo />
+  <div className="w-12 h-12 rounded-2xl bg-purple-100 text-purple-600
+                  flex items-center justify-center mb-4
+                  group-hover:scale-110 transition-transform duration-300">
 
-          </div>
+    <FaVideo />
 
-          <h3 className="text-xl font-bold">
+  </div>
 
-            Organisez vos conférences
+  <h3 className="text-xl font-bold group-hover:text-purple-600 transition-colors">
 
-          </h3>
+    Organisez vos conférences
 
-          <p className="text-gray-500 mt-2">
+  </h3>
 
-            Planifiez vos prochaines séances avec vos étudiants.
+  <p className="text-gray-500 mt-2">
 
-          </p>
+    Planifiez vos prochaines séances avec vos étudiants.
 
-        </div>
+  </p>
 
-      </div>
+  <div className="mt-4 text-sm font-semibold text-purple-600
+                  opacity-0 group-hover:opacity-100
+                  transition-opacity duration-300">
+
+    Accéder aux conférences →
+
+  </div>
+
+</Link>
+
+</div>
 
     </TeacherLayout>
 
