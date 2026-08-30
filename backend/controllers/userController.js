@@ -2,6 +2,7 @@ import User from "../models/User.js"
 import bcrypt from "bcryptjs"
 import fs from "fs"
 import path from "path"
+import cloudinary from "../config/cloudinary.js"
 
 // ======================================
 // CRÉER UN UTILISATEUR
@@ -997,66 +998,155 @@ export const updateOwnProfile = async (req, res) => {
 
     }
 
+// =========================
+// PHOTO DE PROFIL
+// =========================
+
+if (req.file) {
+
+  const filePath = req.file.path
+
+  // Ancienne photo
+  const oldImage = user.profileImage
+
+  try {
+
     // =========================
-    // PHOTO DE PROFIL
+    // UPLOAD CLOUDINARY
     // =========================
 
-    if (req.file) {
+    const result =
+      await cloudinary.uploader.upload(
+        filePath,
+        {
+          folder: "salam-ci/profiles",
+          resource_type: "image"
+        }
+      )
 
-      // Ancienne photo
+    // =========================
+    // ENREGISTRER LA NOUVELLE URL
+    // =========================
 
-      const oldImage =
-        user.profileImage
+    user.profileImage =
+      result.secure_url
 
-      // Nouvelle URL
+    // =========================
+    // SUPPRIMER LE FICHIER
+    // TEMPORAIRE LOCAL
+    // =========================
 
-      const forwardedProto =
-      req.get("x-forwarded-proto")?.split(",")[0] || req.protocol
-    
-      const imageUrl =
-      `${forwardedProto}://${req.get("host")}/uploads/${req.file.filename}`
-    
-      user.profileImage = imageUrl
+    if (fs.existsSync(filePath)) {
 
-      // Supprimer ancienne photo
-      // si elle appartient à notre dossier uploads
+      fs.unlinkSync(filePath)
 
-      if (
-        oldImage &&
-        oldImage.includes("/uploads/")
-      ) {
+    }
 
-        try {
+    // =========================
+    // SUPPRIMER L'ANCIENNE PHOTO
+    // SI ELLE EST SUR CLOUDINARY
+    // =========================
 
-          const oldFilename =
-            oldImage.split("/uploads/")[1]
+    if (
+      oldImage &&
+      oldImage.includes("res.cloudinary.com")
+    ) {
 
-          const oldPath =
-            path.join(
-              "uploads",
-              oldFilename
+      try {
+
+        const uploadMarker = "/upload/"
+
+        const uploadIndex =
+          oldImage.indexOf(uploadMarker)
+
+        if (uploadIndex !== -1) {
+
+          let publicId =
+            oldImage.substring(
+              uploadIndex + uploadMarker.length
             )
 
-          if (fs.existsSync(oldPath)) {
+          // Supprimer la version Cloudinary
+          if (publicId.startsWith("v")) {
 
-            fs.unlinkSync(oldPath)
+            const versionEnd =
+              publicId.indexOf("/")
+
+            if (versionEnd !== -1) {
+
+              publicId =
+                publicId.substring(
+                  versionEnd + 1
+                )
+
+            }
 
           }
 
-        }
+          // Supprimer l'extension
+          publicId =
+            publicId.replace(
+              /\.[^/.]+$/,
+              ""
+            )
 
-        catch (deleteError) {
-
-          console.error(
-            "Erreur suppression ancienne photo :",
-            deleteError.message
+          await cloudinary.uploader.destroy(
+            publicId,
+            {
+              resource_type: "image"
+            }
           )
 
         }
 
       }
 
+      catch (deleteError) {
+
+        console.error(
+          "Erreur suppression ancienne photo Cloudinary :",
+          deleteError.message
+        )
+
+      }
+
     }
+
+  }
+
+  catch (uploadError) {
+
+    // =========================
+    // NETTOYER LE FICHIER
+    // TEMPORAIRE EN CAS D'ERREUR
+    // =========================
+
+    if (
+      filePath &&
+      fs.existsSync(filePath)
+    ) {
+
+      fs.unlinkSync(filePath)
+
+    }
+
+    console.error(
+      "Erreur upload photo profil :",
+      uploadError
+    )
+
+    return res.status(500).json({
+
+      success: false,
+
+      message:
+        "Impossible d'enregistrer la photo de profil."
+
+    })
+
+  }
+
+}
 
     // =========================
     // SAUVEGARDE
