@@ -18,7 +18,8 @@ import {
     FaCheckCircle,
     FaBan,
     FaTrash,
-    FaBookOpen
+    FaBookOpen,
+    FaMoneyBillWave
   } from "react-icons/fa"
 
 function Courses() {
@@ -476,29 +477,33 @@ Chargement des cours...
 
             <tr>
 
-              <th className="text-left p-5">
-                Cours
-              </th>
+            <th className="text-left p-5">
+              Cours
+            </th>
 
-              <th className="text-left">
-                Enseignant
-              </th>
+            <th className="text-left">
+              Enseignant
+            </th>
 
-              <th className="text-left">
-                Catégorie
-              </th>
+            <th className="text-left">
+              Catégorie
+            </th>
 
-              <th className="text-left">
-                Étudiants
-              </th>
+            <th className="text-left">
+              Prix
+            </th>
 
-              <th className="text-left">
-                Statut
-              </th>
+            <th className="text-left">
+              Étudiants
+            </th>
 
-              <th className="text-left">
-                Actions
-              </th>
+            <th className="text-left">
+              Statut
+            </th>
+
+            <th className="text-left">
+              Actions
+            </th>
             </tr>
           </thead>
 
@@ -569,6 +574,51 @@ filteredCourses.map((course) => (
 
     </td>
 
+<td>
+    {course.price !== null &&
+    course.price !== undefined ? (
+
+        <div className="flex flex-col gap-1">
+
+            <span className="font-semibold">
+                {Number(course.price).toLocaleString("fr-FR")} FCFA
+            </span>
+
+            {course.priceStatus && (
+
+                <span
+                    className={`
+                        text-xs
+                        px-2
+                        py-1
+                        rounded-full
+                        w-fit
+
+                        ${
+                            course.priceStatus === "Validé"
+                                ? "bg-green-100 text-green-700"
+                                : course.priceStatus === "Modification demandée"
+                                ? "bg-red-100 text-red-700"
+                                : "bg-orange-100 text-orange-700"
+                        }
+                    `}
+                >
+                    {course.priceStatus}
+                </span>
+
+            )}
+
+        </div>
+
+    ) : (
+
+        <span className="text-gray-400">
+            Non défini
+        </span>
+
+    )}
+</td>
+
     <td>
 
         {course.studentsCount}
@@ -611,16 +661,20 @@ filteredCourses.map((course) => (
                 <FaEye/>
             </button>
 
-            {
-                course.status !== "Publié" &&
+{
+    course.status === "En attente" &&
+    course.priceStatus === "En attente de validation" &&
 
-                <button
-                    onClick={() => publishCourse(course._id)}
-                    className="text-green-600 hover:scale-110"
-                >
-                    <FaCheckCircle/>
-                </button>
-            }
+    <button
+        onClick={() =>
+            navigate(`/admin/courses/${course._id}`)
+        }
+        title="Examiner le prix"
+        className="text-purple-600 hover:scale-110 transition"
+    >
+        <FaMoneyBillWave />
+    </button>
+}
 
             {
                 course.status === "Publié" &&
@@ -659,7 +713,7 @@ filteredCourses.map((course) => (
 <tr>
 
 <td
-    colSpan="6"
+    colSpan="7"
     className="py-16 text-center"
 >
 

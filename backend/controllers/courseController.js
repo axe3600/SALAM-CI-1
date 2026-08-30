@@ -1,6 +1,9 @@
 import Course from "../models/Course.js";
 import cloudinary from "../config/cloudinary.js";
 import fs from "fs/promises";
+import User from "../models/User.js";
+import notificationService from "../services/notificationService.js";
+import emailService from "../services/emailService.js";
 
 // ======================================
 // CRÉER UN COURS
@@ -688,6 +691,664 @@ export const deleteCourse = async (req, res) => {
     res.status(500).json({
 
       message: error.message
+
+    })
+
+  }
+
+}
+
+// ======================================
+// DÉFINIR LE PRIX D'UN COURS
+// PATCH /api/courses/:id/price
+// ENSEIGNANT UNIQUEMENT
+// ======================================
+export const updateCoursePrice = async (req, res) => {
+
+  try {
+
+    const { id } = req.params
+
+    const { price } = req.body
+
+    // =========================
+    // VÉRIFICATION DU PRIX
+    // =========================
+
+    if (
+      price === undefined ||
+      price === null ||
+      price === ""
+    ) {
+
+      return res.status(400).json({
+
+        success: false,
+
+        message: "Veuillez renseigner le prix de la formation."
+
+      })
+
+    }
+
+    const numericPrice = Number(price)
+
+    if (
+      !Number.isFinite(numericPrice) ||
+      numericPrice < 0
+    ) {
+
+      return res.status(400).json({
+
+        success: false,
+
+        message: "Le prix doit être un montant valide."
+
+      })
+
+    }
+
+    // =========================
+    // RÉCUPÉRER LE COURS
+    // =========================
+
+    const course = await Course.findById(id)
+
+    if (!course) {
+
+      return res.status(404).json({
+
+        success: false,
+
+        message: "Cours introuvable."
+
+      })
+
+    }
+
+    // =========================
+    // VÉRIFIER L'ENSEIGNANT
+    // =========================
+
+    if (
+      course.teacher.toString() !==
+      req.user._id.toString()
+    ) {
+
+      return res.status(403).json({
+
+        success: false,
+
+        message:
+          "Vous n'êtes pas autorisé à modifier le prix de ce cours."
+
+      })
+
+    }
+
+    // =========================
+    // VÉRIFIER LE STATUT DU COURS
+    // =========================
+
+    if (course.status !== "En attente") {
+
+      return res.status(400).json({
+
+        success: false,
+
+        message:
+          "Le prix ne peut être défini que pour un cours en attente."
+
+      })
+
+    }
+
+    // =========================
+    // VÉRIFIER LE STATUT DU PRIX
+    // =========================
+
+    if (
+      course.priceStatus ===
+      "En attente de validation"
+    ) {
+
+      return res.status(400).json({
+
+        success: false,
+
+        message:
+          "Le prix de ce cours est déjà en attente de validation."
+
+      })
+
+    }
+
+    // =========================
+    // ENREGISTRER LE PRIX
+    // =========================
+
+    course.price = numericPrice
+
+    course.priceStatus =
+      "En attente de validation"
+
+    // Effacer l'ancien message admin
+    // après une nouvelle soumission
+
+    course.adminMessage = ""
+
+    await course.save()
+
+    // =========================
+    // RÉPONSE
+    // =========================
+
+    return res.status(200).json({
+
+      success: true,
+
+      message:
+        "Prix enregistré et envoyé pour validation.",
+
+      course
+
+    })
+
+  }
+
+  catch (error) {
+
+    console.error(
+      "ERREUR DÉFINITION PRIX :",
+      error
+    )
+
+    return res.status(500).json({
+
+      success: false,
+
+      message:
+        "Impossible d'enregistrer le prix de la formation."
+
+    })
+
+  }
+
+}
+
+
+// ======================================
+// APPROUVER LE PRIX D'UN COURS
+// PATCH /api/courses/:id/price/approve
+// ADMIN UNIQUEMENT
+// ======================================
+export const approveCoursePrice = async (req, res) => {
+
+  try {
+
+    const { id } = req.params
+
+    // =========================
+    // RÉCUPÉRER LE COURS
+    // =========================
+
+    const course = await Course.findById(id)
+      .populate(
+        "teacher",
+        "name email"
+      )
+
+    if (!course) {
+
+      return res.status(404).json({
+
+        success: false,
+
+        message: "Cours introuvable."
+
+      })
+
+    }
+
+    // =========================
+    // VÉRIFICATION DU PRIX
+    // =========================
+
+    if (
+      course.price === null ||
+      course.price === undefined
+    ) {
+
+      return res.status(400).json({
+
+        success: false,
+
+        message:
+          "Ce cours ne possède pas encore de prix."
+
+      })
+
+    }
+
+    // =========================
+    // VÉRIFICATION DU STATUT
+    // =========================
+
+    if (
+      course.priceStatus !==
+      "En attente de validation"
+    ) {
+
+      return res.status(400).json({
+
+        success: false,
+
+        message:
+          "Ce prix n'est pas en attente de validation."
+
+      })
+
+    }
+
+    // =========================
+    // VALIDATION
+    // =========================
+
+    course.priceStatus = "Validé"
+
+    course.status = "Publié"
+
+    course.isActive = true
+
+    course.publishedAt = new Date()
+
+    course.adminMessage = ""
+
+    await course.save()
+
+    // =========================
+    // NOTIFICATION PROFESSEUR
+    // =========================
+
+    try {
+
+      await notificationService.create({
+
+        recipient: course.teacher._id,
+
+        sender: req.user._id,
+
+        title: "Cours approuvé",
+
+        message:
+          `Votre cours « ${course.title} » a été approuvé et publié au prix de ${course.price.toLocaleString("fr-FR")} FCFA.`,
+
+        type: "course",
+
+        entityType: "course",
+
+        entityId: course._id
+
+      })
+
+    }
+
+    catch (notificationError) {
+
+      console.error(
+        "Erreur notification approbation cours :",
+        notificationError.message
+      )
+
+    }
+
+    // =========================
+    // EMAIL PROFESSEUR
+    // =========================
+
+    try {
+
+      await emailService.sendMail({
+
+        to: course.teacher.email,
+
+        subject:
+          "Votre formation a été approuvée - SALAM CI",
+
+        html: `
+
+          <h2>Votre formation a été approuvée 🎉</h2>
+
+          <p>
+            Bonjour ${course.teacher.name},
+          </p>
+
+          <p>
+            Nous avons le plaisir de vous informer que votre
+            formation <strong>« ${course.title} »</strong>
+            a été approuvée par l'administration de SALAM CI.
+          </p>
+
+          <p>
+            <strong>Prix validé :</strong>
+            ${course.price.toLocaleString("fr-FR")} FCFA
+          </p>
+
+          <p>
+            Votre formation est maintenant
+            <strong>publiée sur la plateforme</strong>.
+          </p>
+
+          <p>
+            Merci pour votre contribution à SALAM CI.
+          </p>
+
+        `
+
+      })
+
+    }
+
+    catch (emailError) {
+
+      console.error(
+        "Erreur email approbation cours :",
+        emailError.message
+      )
+
+    }
+
+    // =========================
+    // RÉPONSE
+    // =========================
+
+    return res.status(200).json({
+
+      success: true,
+
+      message:
+        "Prix validé et cours publié avec succès.",
+
+      course
+
+    })
+
+  }
+
+  catch (error) {
+
+    console.error(
+      "ERREUR APPROBATION PRIX :",
+      error
+    )
+
+    return res.status(500).json({
+
+      success: false,
+
+      message:
+        "Impossible de valider le prix du cours."
+
+    })
+
+  }
+
+}
+
+
+// ======================================
+// DEMANDER UNE MODIFICATION DU PRIX
+// PATCH /api/courses/:id/price/request-change
+// ADMIN UNIQUEMENT
+// ======================================
+export const requestCoursePriceChange = async (req, res) => {
+
+  try {
+
+    const { id } = req.params
+
+    const { message } = req.body
+
+    // =========================
+    // MESSAGE OBLIGATOIRE
+    // =========================
+
+    if (
+      !message ||
+      !message.trim()
+    ) {
+
+      return res.status(400).json({
+
+        success: false,
+
+        message:
+          "Veuillez saisir un message pour l'enseignant."
+
+      })
+
+    }
+
+    // =========================
+    // RÉCUPÉRER LE COURS
+    // =========================
+
+    const course = await Course.findById(id)
+      .populate(
+        "teacher",
+        "name email"
+      )
+
+    if (!course) {
+
+      return res.status(404).json({
+
+        success: false,
+
+        message:
+          "Cours introuvable."
+
+      })
+
+    }
+
+    // =========================
+    // VÉRIFICATION DU PRIX
+    // =========================
+
+    if (
+      course.price === null ||
+      course.price === undefined
+    ) {
+
+      return res.status(400).json({
+
+        success: false,
+
+        message:
+          "Ce cours ne possède pas encore de prix."
+
+      })
+
+    }
+
+    // =========================
+    // VÉRIFICATION DU STATUT
+    // =========================
+
+    if (
+      course.priceStatus !==
+      "En attente de validation"
+    ) {
+
+      return res.status(400).json({
+
+        success: false,
+
+        message:
+          "Ce prix n'est pas en attente de validation."
+
+      })
+
+    }
+
+    // =========================
+    // DEMANDE DE MODIFICATION
+    // =========================
+
+    course.priceStatus =
+      "Modification demandée"
+
+    course.status =
+      "En attente"
+
+    course.adminMessage =
+      message.trim()
+
+    course.isActive = true
+
+    course.publishedAt = null
+
+    await course.save()
+
+    // =========================
+    // NOTIFICATION PROFESSEUR
+    // =========================
+
+    try {
+
+      await notificationService.create({
+
+        recipient: course.teacher._id,
+
+        sender: req.user._id,
+
+        title:
+          "Modification du prix demandée",
+
+        message:
+          `L'administration demande une modification du prix de votre cours « ${course.title} ». Consultez le message de l'administration.`,
+
+        type: "course",
+
+        entityType: "course",
+
+        entityId: course._id
+
+      })
+
+    }
+
+    catch (notificationError) {
+
+      console.error(
+        "Erreur notification modification prix :",
+        notificationError.message
+      )
+
+    }
+
+    // =========================
+    // EMAIL PROFESSEUR
+    // =========================
+
+    try {
+
+      await emailService.sendMail({
+
+        to: course.teacher.email,
+
+        subject:
+          "Modification du prix demandée - SALAM CI",
+
+        html: `
+
+          <h2>Modification du prix demandée</h2>
+
+          <p>
+            Bonjour ${course.teacher.name},
+          </p>
+
+          <p>
+            L'administration de SALAM CI a examiné
+            votre formation
+            <strong>« ${course.title} »</strong>.
+          </p>
+
+          <p>
+            Le prix proposé de
+            <strong>
+              ${course.price.toLocaleString("fr-FR")} FCFA
+            </strong>
+            nécessite une modification.
+          </p>
+
+          <p>
+            <strong>Message de l'administration :</strong>
+          </p>
+
+          <div
+            style="
+              background:#f5f5f5;
+              padding:20px;
+              border-radius:10px;
+              margin:15px 0;
+            "
+          >
+            ${course.adminMessage}
+          </div>
+
+          <p>
+            Connectez-vous à votre espace enseignant afin
+            de modifier le prix et de le soumettre à nouveau
+            pour validation.
+          </p>
+
+        `
+
+      })
+
+    }
+
+    catch (emailError) {
+
+      console.error(
+        "Erreur email modification prix :",
+        emailError.message
+      )
+
+    }
+
+    // =========================
+    // RÉPONSE
+    // =========================
+
+    return res.status(200).json({
+
+      success: true,
+
+      message:
+        "Demande de modification envoyée à l'enseignant.",
+
+      course
+
+    })
+
+  }
+
+  catch (error) {
+
+    console.error(
+      "ERREUR DEMANDE MODIFICATION PRIX :",
+      error
+    )
+
+    return res.status(500).json({
+
+      success: false,
+
+      message:
+        "Impossible d'envoyer la demande de modification."
 
     })
 

@@ -89,6 +89,53 @@ const courseSchema = new mongoose.Schema(
     },
 
     // =========================
+    // PRIX DE LA FORMATION
+    // =========================
+    price: {
+
+      type: Number,
+
+      default: null,
+
+      min: 0
+
+    },
+
+    // =========================
+    // STATUT DU PRIX
+    // =========================
+    priceStatus: {
+
+      type: String,
+
+      enum: [
+
+        "Non défini",
+
+        "En attente de validation",
+
+        "Modification demandée",
+
+        "Validé"
+
+      ],
+
+      default: "Non défini"
+
+    },
+
+    // =========================
+    // MESSAGE DE L'ADMIN
+    // =========================
+    adminMessage: {
+
+      type: String,
+
+      default: ""
+
+    },
+
+    // =========================
     // STATUT DU COURS
     // =========================
     status: {
