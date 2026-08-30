@@ -1,36 +1,182 @@
-// ======================================
-// CATÉGORIES (STATIQUES POUR LE MOMENT)
-// ======================================
-const categories = [
+import { useEffect, useState } from "react";
+import API from "../../services/api";
 
-    "Toutes",
+function CategoryFilter({
+    selectedCategory,
+    onCategoryChange
+}) {
 
-    "Développement Web",
+    // ======================================
+    // CATEGORIES
+    // ======================================
 
-    "Intelligence Artificielle",
+    const [categories, setCategories] = useState([]);
 
-    "Cybersécurité",
+    const [loading, setLoading] = useState(true);
 
-    "Design",
+    const [error, setError] = useState("");
 
-    "Marketing",
+    // ======================================
+    // RECUPERER LES CATEGORIES
+    // ======================================
 
-    "Bureautique"
+    useEffect(() => {
 
-];
+        const fetchCategories = async () => {
 
-function CategoryFilter() {
+            try {
+
+                setLoading(true);
+
+                setError("");
+
+                const response = await API.get(
+                    "/categories/list"
+                );
+
+                console.log(
+                    "CATÉGORIES REÇUES :",
+                    response.data
+                );
+
+                // ======================================
+                // COMPATIBLE AVEC PLUSIEURS FORMATS
+                // ======================================
+
+                const data = response.data;
+
+                let categoriesData = [];
+
+                if (Array.isArray(data)) {
+
+                    categoriesData = data;
+
+                }
+
+                else if (
+                    Array.isArray(data.categories)
+                ) {
+
+                    categoriesData = data.categories;
+
+                }
+
+                else if (
+                    Array.isArray(data.data)
+                ) {
+
+                    categoriesData = data.data;
+
+                }
+
+                setCategories(
+                    categoriesData
+                );
+
+            }
+
+            catch (error) {
+
+                console.error(
+                    "Erreur récupération catégories :",
+                    error
+                );
+
+                setError(
+                    "Impossible de charger les catégories."
+                );
+
+            }
+
+            finally {
+
+                setLoading(false);
+
+            }
+
+        };
+
+        fetchCategories();
+
+    }, []);
+
+    // ======================================
+    // NORMALISER LE NOM
+    // ======================================
+
+    const getCategoryName = (category) => {
+
+        if (typeof category === "string") {
+
+            return category;
+
+        }
+
+        return category?.name || "";
+
+    };
+
+    // ======================================
+    // CHARGEMENT
+    // ======================================
+
+    if (loading) {
+
+        return (
+
+            <div className="bg-white rounded-2xl shadow-md p-6 mb-8">
+
+                <h2 className="text-xl font-bold text-gray-800 mb-5">
+
+                    Catégories
+
+                </h2>
+
+                <div className="flex flex-wrap gap-4">
+
+                    <div className="
+                        h-10
+                        w-24
+                        bg-gray-100
+                        rounded-full
+                        animate-pulse
+                    " />
+
+                    <div className="
+                        h-10
+                        w-36
+                        bg-gray-100
+                        rounded-full
+                        animate-pulse
+                    " />
+
+                    <div className="
+                        h-10
+                        w-40
+                        bg-gray-100
+                        rounded-full
+                        animate-pulse
+                    " />
+
+                </div>
+
+            </div>
+
+        );
+
+    }
+
+    // ======================================
+    // AFFICHAGE
+    // ======================================
 
     return (
 
-        // ======================================
-        // FILTRE DES CATÉGORIES
-        // ======================================
         <div className="bg-white rounded-2xl shadow-md p-6 mb-8">
 
-            {/* ==============================
+            {/* ======================================
                 TITRE
-            ============================== */}
+            ====================================== */}
 
             <h2 className="text-xl font-bold text-gray-800 mb-5">
 
@@ -38,53 +184,152 @@ function CategoryFilter() {
 
             </h2>
 
-            {/* ==============================
-                LISTE DES CATÉGORIES
-            ============================== */}
+            {/* ======================================
+                ERREUR
+            ====================================== */}
+
+            {error && (
+
+                <p className="text-red-500 text-sm mb-4">
+
+                    {error}
+
+                </p>
+
+            )}
+
+            {/* ======================================
+                LISTE
+            ====================================== */}
 
             <div className="flex flex-wrap gap-4">
 
-                {
+                {/* ======================================
+                    TOUTES
+                ====================================== */}
 
-                    categories.map((category, index) => (
+                <button
 
-                        <button
+                    onClick={() =>
+                        onCategoryChange("Toutes")
+                    }
 
-                            key={index}
+                    className={`
+                        px-6
+                        py-3
+                        rounded-full
+                        font-medium
+                        transition-all
+                        duration-300
+                        ${
+                            selectedCategory === "Toutes"
 
-                            className="
+                                ? `
+                                    bg-gradient-to-r
+                                    from-purple-600
+                                    to-indigo-600
+                                    text-white
+                                    shadow-md
+                                  `
 
-                                px-6
-                                py-3
+                                : `
+                                    bg-gray-100
+                                    text-gray-700
+                                    hover:bg-gradient-to-r
+                                    hover:from-purple-600
+                                    hover:to-indigo-600
+                                    hover:text-white
+                                  `
+                        }
+                    `}
 
-                                rounded-full
+                >
 
-                                bg-gray-100
+                    Toutes
 
-                                hover:bg-gradient-to-r
-                                hover:from-purple-600
-                                hover:to-indigo-600
+                </button>
 
-                                hover:text-white
+                {/* ======================================
+                    CATEGORIES MONGODB
+                ====================================== */}
 
-                                transition-all
-                                duration-300
+                {categories.map(
+                    (category, index) => {
 
-                                font-medium
+                        const name =
+                            getCategoryName(category);
 
-                            "
+                        if (!name) return null;
 
-                        >
+                        return (
 
-                            {category}
+                            <button
 
-                        </button>
+                                key={
+                                    category._id ||
+                                    category.id ||
+                                    index
+                                }
 
-                    ))
+                                onClick={() =>
+                                    onCategoryChange(name)
+                                }
 
-                }
+                                className={`
+                                    px-6
+                                    py-3
+                                    rounded-full
+                                    font-medium
+                                    transition-all
+                                    duration-300
+                                    ${
+                                        selectedCategory === name
+
+                                            ? `
+                                                bg-gradient-to-r
+                                                from-purple-600
+                                                to-indigo-600
+                                                text-white
+                                                shadow-md
+                                              `
+
+                                            : `
+                                                bg-gray-100
+                                                text-gray-700
+                                                hover:bg-gradient-to-r
+                                                hover:from-purple-600
+                                                hover:to-indigo-600
+                                                hover:text-white
+                                              `
+                                    }
+                                `}
+
+                            >
+
+                                {name}
+
+                            </button>
+
+                        );
+
+                    }
+                )}
 
             </div>
+
+            {/* ======================================
+                AUCUNE CATEGORIE
+            ====================================== */}
+
+            {!categories.length && !error && (
+
+                <p className="text-gray-500 text-sm">
+
+                    Aucune catégorie disponible pour le moment.
+
+                </p>
+
+            )}
 
         </div>
 

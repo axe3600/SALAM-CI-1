@@ -24,6 +24,7 @@ import CommunityAccess from "./pages/community/CommunityAccess"
 import StudentDashboard from "./pages/student/Dashboard"
 import Catalog from "./pages/student/Catalog";
 import Courses from "./pages/student/Courses"
+import CourseDetailsStudent from "./pages/student/CourseDetails";
 import Conferences from "./pages/student/Conferences"
 import Certificates from "./pages/student/Certificates"
 // CERTIFICATES PUBLIC
@@ -398,6 +399,16 @@ function App() {
     }
 />
 
+
+<Route
+  path="/student-course/:id"
+  element={
+    <ProtectedRoute>
+      <CourseDetailsStudent />
+    </ProtectedRoute>
+  }
+/>
+
 <Route
   path="/student-courses"
   element={
@@ -406,6 +417,7 @@ function App() {
     </ProtectedRoute>
   }
 />
+
 
 <Route
   path="/student-conferences"

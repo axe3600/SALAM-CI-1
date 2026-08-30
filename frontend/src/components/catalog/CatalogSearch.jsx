@@ -1,36 +1,96 @@
 // ======================================
-// ICÔNES
+// ICÔNE
 // ======================================
-import { FaSearch } from "react-icons/fa";
 
-function CatalogSearch() {
+import {
+    FaSearch
+} from "react-icons/fa";
+
+
+// ======================================
+// RECHERCHE DU CATALOGUE
+// ======================================
+
+function CatalogSearch({
+
+    search,
+
+    setSearch,
+
+    onSearch
+
+}) {
+
+    // ======================================
+    // ENTRÉE CLAVIER
+    // ======================================
+
+    const handleKeyDown = (event) => {
+
+        if (
+            event.key === "Enter"
+        ) {
+
+            onSearch();
+
+        }
+
+    };
+
 
     return (
 
-        // ======================================
-        // BARRE DE RECHERCHE
-        // ======================================
-        <div className="bg-white rounded-2xl shadow-md p-6 mb-8">
+        <div
+            className="
+                bg-white
+                rounded-2xl
+                shadow-md
+                p-6
+                mb-8
+            "
+        >
 
-            {/* ==============================
+            {/* ==================================
                 TITRE
-            ============================== */}
+            ================================== */}
 
-            <h2 className="text-xl font-bold text-gray-800 mb-4">
+            <h2
+                className="
+                    text-xl
+                    font-bold
+                    text-gray-800
+                    mb-4
+                "
+            >
 
                 Rechercher un cours
 
             </h2>
 
-            {/* ==============================
+
+            {/* ==================================
                 INPUT + BOUTON
-            ============================== */}
+            ================================== */}
 
-            <div className="flex flex-col md:flex-row gap-4">
+            <div
+                className="
+                    flex
+                    flex-col
+                    md:flex-row
+                    gap-4
+                "
+            >
 
-                {/* Champ de recherche */}
+                {/* ==================================
+                    INPUT
+                ================================== */}
 
-                <div className="relative flex-1">
+                <div
+                    className="
+                        relative
+                        flex-1
+                    "
+                >
 
                     <FaSearch
                         className="
@@ -42,9 +102,26 @@ function CatalogSearch() {
                         "
                     />
 
+
                     <input
 
                         type="text"
+
+                        value={
+                            typeof search === "string"
+                                ? search
+                                : ""
+                        }
+
+                        onChange={(event) =>
+                            setSearch(
+                                event.target.value
+                            )
+                        }
+
+                        onKeyDown={
+                            handleKeyDown
+                        }
 
                         placeholder="Rechercher un cours, un enseignant..."
 
@@ -65,9 +142,18 @@ function CatalogSearch() {
 
                 </div>
 
-                {/* Bouton */}
+
+                {/* ==================================
+                    BOUTON
+                ================================== */}
 
                 <button
+
+                    type="button"
+
+                    onClick={
+                        onSearch
+                    }
 
                     className="
                         bg-gradient-to-r
@@ -75,9 +161,11 @@ function CatalogSearch() {
                         to-indigo-600
                         text-white
                         px-8
+                        py-3
                         rounded-xl
                         hover:scale-105
                         transition-all
+                        font-semibold
                     "
 
                 >
@@ -93,5 +181,6 @@ function CatalogSearch() {
     );
 
 }
+
 
 export default CatalogSearch;

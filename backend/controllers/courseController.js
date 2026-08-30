@@ -120,68 +120,140 @@ export const createCourse = async (req, res) => {
 
 
 // ======================================
-// RÉCUPÉRER LES COURS
-// AVEC PAGINATION
-// GET /api/courses?page=1&limit=10
+// RÉCUPÉRER LES COURS DU CATALOGUE
+// GET /api/courses
+//
+// Exemples :
+// /api/courses
+// /api/courses?category=Cybersécurité
+// /api/courses?search=React
+// /api/courses?category=Développement%20Web&search=React
 // ======================================
+
 export const getCourses = async (req, res) => {
 
   try {
 
     // =========================
-    // PARAMÈTRES DE PAGINATION
+    // PARAMÈTRES
     // =========================
-    const page = parseInt(req.query.page) || 1
 
-    const limit = parseInt(req.query.limit) || 10
+    const page =
+      parseInt(req.query.page) || 1;
 
-    // =========================
-    // CALCUL DU SKIP
-    // =========================
-    const skip = (page - 1) * limit
+    const limit =
+      parseInt(req.query.limit) || 10;
 
-    // =========================
-    // NOMBRE TOTAL DE COURS
-    // =========================
-    const totalCourses = await Course.countDocuments()
+    const search =
+      req.query.search?.trim() || "";
 
-    // =========================
-    // NOMBRE TOTAL DE PAGES
-    // =========================
-    const totalPages = Math.ceil(
+    const category =
+      req.query.category?.trim() || "";
 
-      totalCourses / limit
-
-    )
 
     // =========================
-    // RÉCUPÉRATION DES COURS
+    // FILTRE DE BASE
     // =========================
-    const courses = await Course.find()
-   
-      // Nom et email de l'enseignant
-      .populate(
-        "teacher",
-        "name email"
-      )
 
-      .populate(
-        "category",
-        "name"
-      )
+    const filter = {
 
-      // Plus récent en premier
-      .sort({
-        createdAt: -1
-      })
+      status: "Publié",
 
-      .skip(skip)
-      .limit(limit)
+      isActive: true
+
+    };
+
+
+    // =========================
+    // FILTRE CATÉGORIE
+    // =========================
+
+    if (
+      category &&
+      category !== "Toutes"
+    ) {
+
+      filter.category = category;
+
+    }
+
+
+    // =========================
+    // RECHERCHE
+    // TITRE / DESCRIPTION
+    // =========================
+
+    if (search) {
+
+      filter.$or = [
+
+        {
+          title: {
+            $regex: search,
+            $options: "i"
+          }
+        },
+
+        {
+          description: {
+            $regex: search,
+            $options: "i"
+          }
+        }
+
+      ];
+
+    }
+
+
+    // =========================
+    // PAGINATION
+    // =========================
+
+    const skip =
+      (page - 1) * limit;
+
+
+    // =========================
+    // TOTAL
+    // =========================
+
+    const totalCourses =
+      await Course.countDocuments(filter);
+
+
+    const totalPages =
+      Math.ceil(totalCourses / limit);
+
+
+    // =========================
+    // COURS
+    // =========================
+
+    const courses =
+      await Course.find(filter)
+
+        .populate(
+          "teacher",
+          "name email"
+        )
+
+        .sort({
+          createdAt: -1
+        })
+
+        .skip(skip)
+
+        .limit(limit);
+
 
     // =========================
     // RÉPONSE
     // =========================
-    res.status(200).json({
+
+    return res.status(200).json({
+
+      success: true,
 
       courses,
 
@@ -191,23 +263,35 @@ export const getCourses = async (req, res) => {
 
       totalCourses,
 
-      limit
+      limit,
 
-    })
+      search,
+
+      category
+
+    });
 
   }
 
   catch (error) {
 
-    res.status(500).json({
+    console.error(
+      "ERREUR CATALOGUE COURS :",
+      error
+    );
 
-      message: error.message
+    return res.status(500).json({
 
-    })
+      success: false,
+
+      message:
+        "Impossible de récupérer les cours."
+
+    });
 
   }
 
-}
+};
 
 
 // =====================================================
@@ -273,111 +357,272 @@ export const getCourseStats = async (req, res) => {
 
   try {
 
-      // =========================
-      // NOMBRE DE COURS
-      // =========================
+    // =========================
+    // NOMBRE TOTAL DE COURS
+    // =========================
 
-      const totalCourses = await Course.countDocuments();
+    const totalCourses =
+      await Course.countDocuments();
 
-      const publishedCourses = await Course.countDocuments({
-          status: "Publié"
+
+    // =========================
+    // COURS PUBLIÉS
+    // =========================
+
+    const publishedCourses =
+      await Course.countDocuments({
+
+        status: "Publié",
+
+        isActive: true
+
       });
 
-      const draftCourses = await Course.countDocuments({
-          status: "En attente"
+
+    // =========================
+    // COURS EN ATTENTE
+    // =========================
+
+    const draftCourses =
+      await Course.countDocuments({
+
+        status: "En attente"
+
       });
 
-      const suspendedCourses = await Course.countDocuments({
-          status: "Suspendu"
+
+    // =========================
+    // COURS SUSPENDUS
+    // =========================
+
+    const suspendedCourses =
+      await Course.countDocuments({
+
+        status: "Suspendu"
+
       });
 
-      // =========================
-      // SOMME DES STATISTIQUES
-      // =========================
 
-      const stats = await Course.aggregate([
+    // =========================
+    // ENSEIGNANTS
+    // =========================
+    // On récupère les enseignants
+    // possédant au moins un cours publié.
 
-          {
+    const teacherIds =
+      await Course.distinct(
 
-              $group: {
+        "teacher",
 
-                  _id: null,
+        {
 
-                  totalStudents: {
-                      $sum: "$studentsCount"
-                  },
+          status: "Publié",
 
-                  totalViews: {
-                      $sum: "$views"
-                  },
+          isActive: true
 
-                  totalDownloads: {
-                      $sum: "$downloads"
-                  }
+        }
 
-              }
+      );
+
+
+    const totalTeachers =
+      teacherIds.length;
+
+
+    // =========================
+    // STATISTIQUES DES COURS
+    // =========================
+
+    const stats =
+      await Course.aggregate([
+
+        {
+
+          $match: {
+
+            status: "Publié",
+
+            isActive: true
 
           }
 
+        },
+
+        {
+
+          $group: {
+
+            _id: null,
+
+            totalStudents: {
+
+              $sum: "$studentsCount"
+
+            },
+
+            totalViews: {
+
+              $sum: "$views"
+
+            },
+
+            totalDownloads: {
+
+              $sum: "$downloads"
+
+            }
+
+          }
+
+        }
+
       ]);
 
-      res.json({
 
-          totalCourses,
+    // =========================
+    // RÉPONSE
+    // =========================
 
-          publishedCourses,
+    res.status(200).json({
 
-          draftCourses,
+      totalCourses,
 
-          suspendedCourses,
+      publishedCourses,
 
-          totalStudents: stats[0]?.totalStudents || 0,
+      draftCourses,
 
-          totalViews: stats[0]?.totalViews || 0,
+      suspendedCourses,
 
-          totalDownloads: stats[0]?.totalDownloads || 0
+      totalTeachers,
 
-      });
+      totalStudents:
+        stats[0]?.totalStudents || 0,
+
+      totalViews:
+        stats[0]?.totalViews || 0,
+
+      totalDownloads:
+        stats[0]?.totalDownloads || 0
+
+    });
 
   }
 
   catch (error) {
 
-      console.log(error);
+    console.error(
+      "ERREUR STATISTIQUES COURS :",
+      error
+    );
 
-      res.status(500).json({
+    res.status(500).json({
 
-          message: error.message
+      message:
+        "Impossible de récupérer les statistiques des cours."
 
-      });
+    });
 
   }
 
 };
 
 
-// =========================
-// COURS D'UNE CATEGORIE
-// =========================
+// ======================================
+// COURS PAR CATÉGORIE
+// GET /api/courses/category/:category
+// ======================================
 
 export const getCoursesByCategory = async (req, res) => {
 
-  console.log("Reçu :", JSON.stringify(req.params.category))
+  try {
 
-  const allCourses = await Course.find()
+    const category =
+      req.params.category;
 
-  allCourses.forEach(course => {
-      console.log("Mongo :", JSON.stringify(course.category))
-  })
 
-  const courses = await Course.find({
-      category: req.params.category
-  })
+    // =========================
+    // VÉRIFICATION
+    // =========================
 
-  console.log("Trouvés :", courses.length)
+    if (!category) {
 
-  res.json(courses)
-}
+      return res.status(400).json({
+
+        success: false,
+
+        message:
+          "Catégorie non renseignée."
+
+      });
+
+    }
+
+
+    // =========================
+    // RECHERCHE
+    // =========================
+
+    const courses =
+      await Course.find({
+
+        category,
+
+        status: "Publié",
+
+        isActive: true
+
+      })
+
+      .populate(
+        "teacher",
+        "name email"
+      )
+
+      .sort({
+
+        createdAt: -1
+
+      });
+
+
+    // =========================
+    // RÉPONSE
+    // =========================
+
+    return res.status(200).json({
+
+      success: true,
+
+      courses,
+
+      totalCourses:
+        courses.length,
+
+      category
+
+    });
+
+  }
+
+  catch (error) {
+
+    console.error(
+      "ERREUR COURS PAR CATÉGORIE :",
+      error
+    );
+
+    return res.status(500).json({
+
+      success: false,
+
+      message:
+        "Impossible de récupérer les cours de cette catégorie."
+
+    });
+
+  }
+
+};
 
 
 // ======================================

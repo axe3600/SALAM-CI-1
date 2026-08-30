@@ -1,19 +1,116 @@
 // ======================================
-// ICÔNES
+// IMPORTS
 // ======================================
+
+import { useEffect, useState } from "react";
+
 import {
     FaBookOpen,
     FaGraduationCap,
     FaUsers
 } from "react-icons/fa";
 
+import API from "../../services/api";
+
+
+// ======================================
+// COMPOSANT
+// ======================================
+
 function CatalogHero() {
+
+    // ======================================
+    // STATISTIQUES
+    // ======================================
+
+    const [stats, setStats] = useState({
+
+        courses: 0,
+
+        teachers: 0,
+
+        students: 0
+
+    });
+
+
+    const [loading, setLoading] = useState(true);
+
+
+    // ======================================
+    // RÉCUPÉRER LES STATISTIQUES
+    // ======================================
+
+    useEffect(() => {
+
+        const fetchStats = async () => {
+
+            try {
+
+                const response =
+                    await API.get("/courses/stats");
+
+                console.log(
+                    "STATISTIQUES CATALOGUE :",
+                    response.data
+                );
+
+
+                setStats({
+
+                    courses:
+                        response.data.publishedCourses ?? 0,
+
+                    teachers:
+                        response.data.totalTeachers ?? 0,
+
+                    students:
+                        response.data.totalStudents ?? 0
+
+                });
+
+            }
+
+            catch (error) {
+
+                console.error(
+                    "Erreur récupération statistiques catalogue :",
+                    error
+                );
+
+            }
+
+            finally {
+
+                setLoading(false);
+
+            }
+
+        };
+
+
+        fetchStats();
+
+    }, []);
+
+
+    // ======================================
+    // FORMATAGE DES NOMBRES
+    // ======================================
+
+    const formatNumber = (number) => {
+
+        return Number(number).toLocaleString("fr-FR");
+
+    };
+
+
+    // ======================================
+    // AFFICHAGE
+    // ======================================
 
     return (
 
-        // ======================================
-        // SECTION HERO
-        // ======================================
         <section
             className="
                 bg-gradient-to-r
@@ -28,25 +125,48 @@ function CatalogHero() {
             "
         >
 
-            {/* ==============================
+            {/* ======================================
                 CONTENU PRINCIPAL
-            ============================== */}
+            ====================================== */}
 
-            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-8">
+            <div
+                className="
+                    flex
+                    flex-col
+                    lg:flex-row
+                    lg:items-center
+                    lg:justify-between
+                    gap-8
+                "
+            >
 
-                {/* ==============================
+                {/* ==================================
                     TEXTE
-                ============================== */}
+                ================================== */}
 
                 <div>
 
-                    <h1 className="text-5xl font-extrabold">
+                    <h1
+                        className="
+                            text-5xl
+                            font-extrabold
+                        "
+                    >
 
                         Catalogue des cours
 
                     </h1>
 
-                    <p className="mt-4 text-lg text-indigo-100 max-w-2xl leading-relaxed">
+
+                    <p
+                        className="
+                            mt-4
+                            text-lg
+                            text-indigo-100
+                            max-w-2xl
+                            leading-relaxed
+                        "
+                    >
 
                         Découvrez les meilleurs cours proposés par nos enseignants
                         et développez vos compétences grâce à une plateforme
@@ -56,26 +176,65 @@ function CatalogHero() {
 
                 </div>
 
-                {/* ==============================
-                    PETITES STATISTIQUES
-                    (Statiques pour le moment)
-                ============================== */}
 
-                <div className="grid grid-cols-3 gap-5">
+                {/* ==================================
+                    STATISTIQUES DYNAMIQUES
+                ================================== */}
 
-                    {/* Cours */}
+                <div
+                    className="
+                        grid
+                        grid-cols-3
+                        gap-5
+                    "
+                >
 
-                    <div className="bg-white/10 backdrop-blur rounded-2xl p-5 text-center">
+                    {/* ==================================
+                        COURS
+                    ================================== */}
 
-                        <FaBookOpen className="mx-auto text-3xl mb-3 text-yellow-300" />
+                    <div
+                        className="
+                            bg-white/10
+                            backdrop-blur
+                            rounded-2xl
+                            p-5
+                            text-center
+                            min-w-[110px]
+                        "
+                    >
 
-                        <h2 className="text-3xl font-bold">
+                        <FaBookOpen
+                            className="
+                                mx-auto
+                                text-3xl
+                                mb-3
+                                text-yellow-300
+                            "
+                        />
 
-                            120
+
+                        <h2
+                            className="
+                                text-3xl
+                                font-bold
+                            "
+                        >
+
+                            {loading
+                                ? "..."
+                                : formatNumber(stats.courses)
+                            }
 
                         </h2>
 
-                        <p className="text-sm text-indigo-100">
+
+                        <p
+                            className="
+                                text-sm
+                                text-indigo-100
+                            "
+                        >
 
                             Cours
 
@@ -83,19 +242,53 @@ function CatalogHero() {
 
                     </div>
 
-                    {/* Enseignants */}
 
-                    <div className="bg-white/10 backdrop-blur rounded-2xl p-5 text-center">
+                    {/* ==================================
+                        ENSEIGNANTS
+                    ================================== */}
 
-                        <FaGraduationCap className="mx-auto text-3xl mb-3 text-green-300" />
+                    <div
+                        className="
+                            bg-white/10
+                            backdrop-blur
+                            rounded-2xl
+                            p-5
+                            text-center
+                            min-w-[110px]
+                        "
+                    >
 
-                        <h2 className="text-3xl font-bold">
+                        <FaGraduationCap
+                            className="
+                                mx-auto
+                                text-3xl
+                                mb-3
+                                text-green-300
+                            "
+                        />
 
-                            35
+
+                        <h2
+                            className="
+                                text-3xl
+                                font-bold
+                            "
+                        >
+
+                            {loading
+                                ? "..."
+                                : formatNumber(stats.teachers)
+                            }
 
                         </h2>
 
-                        <p className="text-sm text-indigo-100">
+
+                        <p
+                            className="
+                                text-sm
+                                text-indigo-100
+                            "
+                        >
 
                             Enseignants
 
@@ -103,19 +296,53 @@ function CatalogHero() {
 
                     </div>
 
-                    {/* Étudiants */}
 
-                    <div className="bg-white/10 backdrop-blur rounded-2xl p-5 text-center">
+                    {/* ==================================
+                        ÉTUDIANTS
+                    ================================== */}
 
-                        <FaUsers className="mx-auto text-3xl mb-3 text-pink-300" />
+                    <div
+                        className="
+                            bg-white/10
+                            backdrop-blur
+                            rounded-2xl
+                            p-5
+                            text-center
+                            min-w-[110px]
+                        "
+                    >
 
-                        <h2 className="text-3xl font-bold">
+                        <FaUsers
+                            className="
+                                mx-auto
+                                text-3xl
+                                mb-3
+                                text-pink-300
+                            "
+                        />
 
-                            2 500+
+
+                        <h2
+                            className="
+                                text-3xl
+                                font-bold
+                            "
+                        >
+
+                            {loading
+                                ? "..."
+                                : formatNumber(stats.students)
+                            }
 
                         </h2>
 
-                        <p className="text-sm text-indigo-100">
+
+                        <p
+                            className="
+                                text-sm
+                                text-indigo-100
+                            "
+                        >
 
                             Étudiants
 

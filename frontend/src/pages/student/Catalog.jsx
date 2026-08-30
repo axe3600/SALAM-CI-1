@@ -1,7 +1,9 @@
+import { useState } from "react";
+
 // ======================================
 // LAYOUT ÉTUDIANT
 // ======================================
-import DashboardLayout from "../../layouts/DashboardLayout"
+import DashboardLayout from "../../layouts/DashboardLayout";
 
 // ======================================
 // COMPOSANTS DU CATALOGUE
@@ -13,35 +15,98 @@ import CourseGrid from "../../components/catalog/CourseGrid";
 
 function Catalog() {
 
+    // ======================================
+    // CATÉGORIE SÉLECTIONNÉE
+    // ======================================
+    const [selectedCategory, setSelectedCategory] =
+        useState("Toutes");
+
+    // ======================================
+    // RECHERCHE
+    // ======================================
+    const [search, setSearch] = useState("");
+
+    // ======================================
+    // CHANGEMENT DE CATÉGORIE
+    // ======================================
+    const handleCategoryChange = (category) => {
+
+        console.log(
+            "Catégorie sélectionnée :",
+            category
+        );
+
+        setSelectedCategory(category);
+
+    };
+
+    // ======================================
+    // LANCER LA RECHERCHE
+    // ======================================
+    const handleSearch = () => {
+
+        console.log(
+            "Recherche :",
+            search
+        );
+
+        // La recherche est déjà stockée
+        // dans l'état "search".
+        // CourseGrid se mettra automatiquement
+        // à jour.
+    };
+
     return (
 
-        // ======================================
-        // LAYOUT PRINCIPAL DE L'ÉTUDIANT
-        // ======================================
         <DashboardLayout>
 
             {/* ======================================
                 HERO
-                Titre + description du catalogue
             ====================================== */}
             <CatalogHero />
 
             {/* ======================================
-                BARRE DE RECHERCHE
-                (Statique pour le moment)
+                RECHERCHE
             ====================================== */}
-            <CatalogSearch />
+            <CatalogSearch
+
+                search={search}
+
+                setSearch={setSearch}
+
+                onSearch={handleSearch}
+
+            />
 
             {/* ======================================
-                FILTRE PAR CATÉGORIE
-                (Statique pour le moment)
+                CATEGORIES
             ====================================== */}
-            <CategoryFilter />
+            <CategoryFilter
+
+                selectedCategory={
+                    selectedCategory
+                }
+
+                onCategoryChange={
+                    handleCategoryChange
+                }
+
+            />
 
             {/* ======================================
-                LISTE DES COURS
+                COURS
             ====================================== */}
-            <CourseGrid />
+            <CourseGrid
+
+                selectedCategory={
+                    selectedCategory
+                }
+
+                search={
+                    search
+                }
+
+            />
 
         </DashboardLayout>
 
