@@ -510,11 +510,7 @@ function CourseLearn() {
 
             <button
                 type="button"
-                onClick={() =>
-                    navigate(
-                        `/student-course/${id}`
-                    )
-                }
+                onClick={() => navigate("/student-courses")}
                 className="
                     inline-flex
                     items-center
