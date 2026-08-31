@@ -36,6 +36,13 @@ function CourseDetails() {
 
     const [course, setCourse] = useState(null);
 
+    // ======================================
+    // INSCRIPTION
+    // ======================================
+    const [enrollment, setEnrollment] = useState(null);
+    const [enrolled, setEnrolled] = useState(false);
+    const [enrollmentLoading, setEnrollmentLoading] = useState(true);
+    const [enrollmentSubmitting, setEnrollmentSubmitting] = useState(false);
 
     // ======================================
     // CHARGEMENT
@@ -54,7 +61,6 @@ function CourseDetails() {
     // ======================================
     // RÉCUPÉRER LE COURS
     // ======================================
-
     const getCourse = async () => {
 
         try {
@@ -98,6 +104,200 @@ function CourseDetails() {
 
     };
 
+// ======================================
+// VÉRIFIER L'INSCRIPTION
+// ======================================
+const checkStudentEnrollment = async () => {
+
+    try {
+
+        setEnrollmentLoading(true);
+
+        const res = await API.get(
+            `/enrollments/check/${id}`
+        );
+
+        console.log(
+            "INSCRIPTION :",
+            res.data
+        );
+
+        setEnrolled(
+            res.data?.enrolled === true
+        );
+
+        setEnrollment(
+            res.data?.enrollment || null
+        );
+
+    }
+
+    catch (error) {
+
+        console.error(
+            "Erreur vérification inscription :",
+            error
+        );
+
+        setEnrolled(false);
+
+        setEnrollment(null);
+
+    }
+
+    finally {
+
+        setEnrollmentLoading(false);
+
+    }
+
+};
+
+// ======================================
+// ACCEDER A LA FORMATION
+// ======================================
+const handleAccessCourse = async () => {
+
+    // ======================================
+    // DEJA INSCRIT
+    // ======================================
+
+    if (enrolled) {
+
+        navigate(
+            `/student-course/${id}/learn`
+        );
+
+        return;
+
+    }
+
+
+    // ======================================
+    // CREER LE PAIEMENT
+    // ======================================
+
+    try {
+
+        setEnrollmentSubmitting(true);
+
+        setError("");
+
+
+        const res = await API.post(
+
+            "/payments/create",
+
+            {
+                courseId: id
+            }
+
+        );
+
+
+        console.log(
+
+            "PAIEMENT :",
+
+            res.data
+
+        );
+
+
+        // ======================================
+        // FORMATION GRATUITE
+        // ======================================
+
+        if (res.data?.free) {
+
+            setEnrolled(true);
+
+            setEnrollment(
+                res.data?.enrollment || null
+            );
+
+
+            navigate(
+                `/student-course/${id}/learn`
+            );
+
+
+            return;
+
+        }
+
+
+        // ======================================
+        // PAIEMENT TEST
+        // ======================================
+
+        if (res.data?.paymentUrl) {
+
+            if (
+                res.data.paymentUrl.startsWith("/")
+            ) {
+
+                navigate(
+                    res.data.paymentUrl
+                );
+
+            }
+
+            else {
+
+                window.location.href =
+                    res.data.paymentUrl;
+
+            }
+
+
+            return;
+
+        }
+
+
+        // ======================================
+        // AUCUNE URL
+        // ======================================
+
+        throw new Error(
+
+            "Aucune page de paiement n'a été générée."
+
+        );
+
+    }
+
+    catch (error) {
+
+        console.error(
+
+            "Erreur création paiement :",
+
+            error
+
+        );
+
+
+        alert(
+
+            error.response?.data?.message ||
+
+            error.message ||
+
+            "Impossible d'initialiser le paiement."
+
+        );
+
+    }
+
+    finally {
+
+        setEnrollmentSubmitting(false);
+
+    }
+
+};
 
     // ======================================
     // CHARGEMENT INITIAL
@@ -106,7 +306,9 @@ function CourseDetails() {
     useEffect(() => {
 
         getCourse();
-
+    
+        checkStudentEnrollment();
+    
     }, [id]);
 
 
@@ -532,24 +734,44 @@ function CourseDetails() {
 
                             <button
                                 type="button"
+                                onClick={handleAccessCourse}
+                                disabled={
+                                    enrollmentLoading ||
+                                    enrollmentSubmitting
+                                }
                                 className="
-                                    w-full
-                                    mt-8
-                                    bg-gradient-to-r
-                                    from-purple-600
-                                    to-indigo-600
-                                    text-white
-                                    py-4
-                                    rounded-xl
-                                    font-semibold
-                                    text-lg
-                                    hover:scale-[1.02]
-                                    transition
+                                  w-full
+                                  mt-8
+                                  bg-gradient-to-r
+                                  from-purple-600
+                                  to-indigo-600
+                                  text-white
+                                  py-4
+                                  rounded-xl
+                                  font-semibold
+                                  text-lg
+                                  shadow-md
+                                  hover:shadow-xl
+                                  hover:scale-[1.02]
+                                  transition-all
+                                  duration-300
+                                  disabled:opacity-60
+                                  disabled:cursor-not-allowed
+                                  disabled:hover:scale-100
                                 "
                             >
-
-                                Accéder à la formation
-
+                              {enrollmentLoading
+                                ? "Vérification..."
+                                : enrollmentSubmitting
+                                ? "Traitement..."
+                                : enrolled
+                                ? "Continuer la formation"
+                                : course.price === null ||
+                                course.price === undefined ||
+                                Number(course.price) === 0
+                                ? "Commencer gratuitement"
+                                : "Acheter la formation"
+                              }
                             </button>
 
                         </div>

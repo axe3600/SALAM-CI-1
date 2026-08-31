@@ -23,8 +23,10 @@ import CommunityAccess from "./pages/community/CommunityAccess"
 // STUDENT
 import StudentDashboard from "./pages/student/Dashboard"
 import Catalog from "./pages/student/Catalog";
+import PaymentTest from "./pages/student/PaymentTest";
 import Courses from "./pages/student/Courses"
 import CourseDetailsStudent from "./pages/student/CourseDetails";
+import CourseLearn from "./pages/student/CourseLearn";
 import Conferences from "./pages/student/Conferences"
 import Certificates from "./pages/student/Certificates"
 // CERTIFICATES PUBLIC
@@ -399,12 +401,29 @@ function App() {
     }
 />
 
+<Route
+  path="/payment-test/:paymentId"
+  element={
+    <ProtectedRoute>
+      <PaymentTest />
+    </ProtectedRoute>
+  }
+/>
 
 <Route
   path="/student-course/:id"
   element={
     <ProtectedRoute>
       <CourseDetailsStudent />
+    </ProtectedRoute>
+  }
+/>
+
+<Route
+  path="/student-course/:id/learn"
+  element={
+    <ProtectedRoute>
+      <CourseLearn />
     </ProtectedRoute>
   }
 />

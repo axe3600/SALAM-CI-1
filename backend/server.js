@@ -33,6 +33,8 @@ import exerciseRoutes from "./routes/exerciseRoutes.js";
 import enrollmentRoutes from "./routes/enrollmentRoutes.js";
 //Côté admin
 import notificationRoutes from "./routes/notificationRoutes.js";
+//Côté étudiant
+import paymentRoutes from "./routes/paymentRoutes.js";
 //Communauté
 import communityRoutes from "./routes/communityRoutes.js";
 //statistic admin
@@ -86,6 +88,9 @@ app.use("/api/users", userRoutes)
 
 // Notifications
 app.use( "/api/notifications", notificationRoutes);
+
+// Payements
+app.use("/api/payments", paymentRoutes);
 
 // COMMUNAUTE
 app.use("/api/community", communityRoutes );
