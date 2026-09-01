@@ -9,72 +9,72 @@ import Notification from "../models/Notification.js";
 export const createQuiz = async (req,res)=>{
 
     try{
-    
-    
+
+
     const {
-    
+
     title,
-    
+
     description,
-    
+
     duration,
-    
+
     passingScore,
-    
+
     chapter,
-    
+
     questions
-    
-    
+
+
     }=req.body;
 
-    
+
     const totalPoints = questions.reduce(
 
         (total,q)=> total + q.points,
-        
+
         0
-        
+
         );
 
-    
+
     const quiz = await Quiz.create({
-    
+
     title,
-    
+
     description,
-    
+
     duration,
-    
+
     passingScore,
-    
+
     chapter,
-    
+
     questions,
 
     totalPoints
-    
+
     });
-    
-    
+
+
     res.status(201).json(quiz);
-    
-    
+
+
     }
-    
-    
+
+
     catch(error){
-    
+
     res.status(500).json({
-    
+
     message:error.message
-    
+
     });
-    
-    
+
+
     }
-    
-    
+
+
     };
 // ======================================================
 // TOUS LES QUIZ D'UN CHAPITRE
@@ -384,12 +384,20 @@ export const getMyQuizSubmission = async (req, res) => {
         if (req.user?.role !== "student") {
 
             return res.status(403).json({
+
                 success: false,
-                message: "Cette action est réservée aux étudiants."
+
+                message:
+                    "Cette action est réservée aux étudiants."
+
             });
 
         }
 
+
+        // =================================================
+        // RECHERCHER LA SOUMISSION
+        // =================================================
 
         const submission =
             await QuizSubmission.findOne({
@@ -425,7 +433,66 @@ export const getMyQuizSubmission = async (req, res) => {
 
 
         // =================================================
-        // DEJA SOUMIS
+        // SI LE QUIZ EST EN ATTENTE DE CORRECTION
+        // =================================================
+
+        if (submission.status === "submitted") {
+
+            const safeAnswers =
+                submission.answers.map(answer => ({
+
+                    questionId:
+                        answer.questionId,
+
+                    selectedAnswer:
+                        answer.selectedAnswer
+
+                }));
+
+
+            return res.json({
+
+                success: true,
+
+                submitted: true,
+
+                status: "submitted",
+
+                submission: {
+
+                    _id:
+                        submission._id,
+
+                    quiz:
+                        submission.quiz,
+
+                    student:
+                        submission.student,
+
+                    chapter:
+                        submission.chapter,
+
+                    course:
+                        submission.course,
+
+                    answers:
+                        safeAnswers,
+
+                    status:
+                        "submitted",
+
+                    submittedAt:
+                        submission.submittedAt
+
+                }
+
+            });
+
+        }
+
+
+        // =================================================
+        // QUIZ CORRIGÉ
         // =================================================
 
         return res.json({
@@ -433,6 +500,8 @@ export const getMyQuizSubmission = async (req, res) => {
             success: true,
 
             submitted: true,
+
+            status: "corrected",
 
             submission
 
@@ -443,7 +512,7 @@ export const getMyQuizSubmission = async (req, res) => {
     catch (error) {
 
         console.error(
-            "❌ Erreur récupération soumission quiz :",
+            "Erreur récupération soumission quiz :",
             error
         );
 
@@ -523,23 +592,47 @@ export const submitQuiz = async (req, res) => {
             });
 
 
-        if (existingSubmission) {
+            if (existingSubmission) {
 
-            return res.status(409).json({
+                return res.status(409).json({
 
-                success: false,
+                    success: false,
 
-                alreadySubmitted: true,
+                    alreadySubmitted: true,
 
-                message:
-                    "Vous avez déjà soumis ce quiz.",
+                    message:
+                        "Vous avez déjà soumis ce quiz.",
 
-                submission:
-                    existingSubmission
+                    submitted: true,
 
-            });
+                    status:
+                        existingSubmission.status,
 
-        }
+                    submission: {
+
+                        _id:
+                            existingSubmission._id,
+
+                        quiz:
+                            existingSubmission.quiz,
+
+                        chapter:
+                            existingSubmission.chapter,
+
+                        course:
+                            existingSubmission.course,
+
+                        status:
+                            existingSubmission.status,
+
+                        submittedAt:
+                            existingSubmission.submittedAt
+
+                    }
+
+                });
+
+            }
 
 
         // =================================================
@@ -747,7 +840,6 @@ export const submitQuiz = async (req, res) => {
             // Protection supplémentaire contre un double
             // envoi simultané
             // ---------------------------------------------
-
             if (error?.code === 11000) {
 
                 const duplicate =
@@ -768,8 +860,34 @@ export const submitQuiz = async (req, res) => {
                     message:
                         "Vous avez déjà soumis ce quiz.",
 
-                    submission:
-                        duplicate
+                    submitted: true,
+
+                    status:
+                        duplicate?.status || "submitted",
+
+                    submission: duplicate
+                        ? {
+
+                            _id:
+                                duplicate._id,
+
+                            quiz:
+                                duplicate.quiz,
+
+                            chapter:
+                                duplicate.chapter,
+
+                            course:
+                                duplicate.course,
+
+                            status:
+                                duplicate.status,
+
+                            submittedAt:
+                                duplicate.submittedAt
+
+                        }
+                        : null
 
                 });
 
@@ -826,7 +944,6 @@ export const submitQuiz = async (req, res) => {
         // =================================================
         // REPONSE
         // =================================================
-
         return res.status(201).json({
 
             success: true,
@@ -836,7 +953,29 @@ export const submitQuiz = async (req, res) => {
 
             submitted: true,
 
-            submission
+            status: "submitted",
+
+            submission: {
+
+                _id:
+                    submission._id,
+
+                quiz:
+                    submission.quiz,
+
+                chapter:
+                    submission.chapter,
+
+                course:
+                    submission.course,
+
+                status:
+                    submission.status,
+
+                submittedAt:
+                    submission.submittedAt
+
+            }
 
         });
 
@@ -855,6 +994,574 @@ export const submitQuiz = async (req, res) => {
 
             message:
                 "Impossible d'envoyer le quiz."
+
+        });
+
+    }
+
+};
+
+
+// ======================================================
+// RECUPERER LES SOUMISSIONS D'UN QUIZ POUR LE PROFESSEUR
+// GET /api/quizzes/:id/submissions
+// ======================================================
+
+export const getQuizSubmissionsForTeacher = async (req, res) => {
+
+    try {
+
+        // =================================================
+        // VERIFIER LE PROFESSEUR
+        // =================================================
+
+        if (req.user?.role !== "teacher") {
+
+            return res.status(403).json({
+
+                success: false,
+
+                message:
+                    "Cette action est réservée aux enseignants."
+
+            });
+
+        }
+
+
+        // =================================================
+        // RECUPERER LE QUIZ
+        // =================================================
+
+        const quiz =
+            await Quiz.findById(req.params.id);
+
+
+        if (!quiz) {
+
+            return res.status(404).json({
+
+                success: false,
+
+                message:
+                    "Quiz introuvable."
+
+            });
+
+        }
+
+
+        // =================================================
+        // RECUPERER LE CHAPITRE
+        // =================================================
+
+        const chapter =
+            await Chapter.findById(
+                quiz.chapter
+            ).populate("course");
+
+
+        if (!chapter || !chapter.course) {
+
+            return res.status(404).json({
+
+                success: false,
+
+                message:
+                    "Cours associé au quiz introuvable."
+
+            });
+
+        }
+
+
+        // =================================================
+        // VERIFIER QUE LE PROFESSEUR POSSÈDE LE COURS
+        // =================================================
+
+        if (
+            String(chapter.course.teacher) !==
+            String(req.user._id)
+        ) {
+
+            return res.status(403).json({
+
+                success: false,
+
+                message:
+                    "Vous n'êtes pas l'enseignant de ce cours."
+
+            });
+
+        }
+
+
+        // =================================================
+        // RECUPERER LES SOUMISSIONS
+        // =================================================
+
+        const submissions =
+            await QuizSubmission.find({
+
+                quiz: quiz._id
+
+            })
+            .populate(
+                "student",
+                "firstName lastName name email"
+            )
+            .sort({
+                submittedAt: -1
+            });
+
+
+        return res.json({
+
+            success: true,
+
+            quiz: {
+
+                _id:
+                    quiz._id,
+
+                title:
+                    quiz.title,
+
+                totalPoints:
+                    quiz.totalPoints
+
+            },
+
+            course: {
+
+                _id:
+                    chapter.course._id,
+
+                title:
+                    chapter.course.title
+
+            },
+
+            chapter: {
+
+                _id:
+                    chapter._id,
+
+                title:
+                    chapter.title
+
+            },
+
+            submissions
+
+        });
+
+    }
+
+    catch (error) {
+
+        console.error(
+            "Erreur récupération soumissions professeur :",
+            error
+        );
+
+        return res.status(500).json({
+
+            success: false,
+
+            message:
+                "Impossible de récupérer les soumissions."
+
+        });
+
+    }
+
+};
+
+
+// ======================================================
+// RECUPERER UNE SOUMISSION POUR LE PROFESSEUR
+// GET /api/quizzes/submissions/:submissionId
+// ======================================================
+
+export const getTeacherQuizSubmission = async (req, res) => {
+
+    try {
+
+        // =================================================
+        // VERIFIER LE PROFESSEUR
+        // =================================================
+
+        if (req.user?.role !== "teacher") {
+
+            return res.status(403).json({
+
+                success: false,
+
+                message:
+                    "Cette action est réservée aux enseignants."
+
+            });
+
+        }
+
+
+        // =================================================
+        // RECUPERER LA SOUMISSION
+        // =================================================
+
+        const submission =
+            await QuizSubmission.findById(
+                req.params.submissionId
+            )
+            .populate(
+                "student",
+                "firstName lastName name email"
+            )
+            .populate(
+                "quiz"
+            )
+            .populate(
+                "chapter"
+            )
+            .populate(
+                "course"
+            );
+
+
+        if (!submission) {
+
+            return res.status(404).json({
+
+                success: false,
+
+                message:
+                    "Soumission introuvable."
+
+            });
+
+        }
+
+
+        // =================================================
+        // VERIFIER LE PROFESSEUR
+        // =================================================
+
+        if (
+            !submission.course ||
+            String(submission.course.teacher) !==
+            String(req.user._id)
+        ) {
+
+            return res.status(403).json({
+
+                success: false,
+
+                message:
+                    "Vous n'êtes pas autorisé à consulter cette soumission."
+
+            });
+
+        }
+
+
+        return res.json({
+
+            success: true,
+
+            submission
+
+        });
+
+    }
+
+    catch (error) {
+
+        console.error(
+            "Erreur récupération soumission :",
+            error
+        );
+
+        return res.status(500).json({
+
+            success: false,
+
+            message:
+                "Impossible de récupérer la soumission."
+
+        });
+
+    }
+
+};
+
+
+// ======================================================
+// CORRIGER / VALIDER UNE SOUMISSION
+// PATCH /api/quizzes/submissions/:submissionId/correct
+// ======================================================
+
+export const correctQuizSubmission = async (req, res) => {
+
+    try {
+
+        // =================================================
+        // VERIFIER LE PROFESSEUR
+        // =================================================
+
+        if (req.user?.role !== "teacher") {
+
+            return res.status(403).json({
+
+                success: false,
+
+                message:
+                    "Cette action est réservée aux enseignants."
+
+            });
+
+        }
+
+
+        // =================================================
+        // RECUPERER LA SOUMISSION
+        // =================================================
+
+        const submission =
+            await QuizSubmission.findById(
+                req.params.submissionId
+            )
+            .populate("student")
+            .populate("quiz")
+            .populate("course");
+
+
+        if (!submission) {
+
+            return res.status(404).json({
+
+                success: false,
+
+                message:
+                    "Soumission introuvable."
+
+            });
+
+        }
+
+
+        // =================================================
+        // VERIFIER LE COURS
+        // =================================================
+
+        if (
+            !submission.course ||
+            String(submission.course.teacher) !==
+            String(req.user._id)
+        ) {
+
+            return res.status(403).json({
+
+                success: false,
+
+                message:
+                    "Vous n'êtes pas autorisé à corriger cette soumission."
+
+            });
+
+        }
+
+
+        // =================================================
+        // EVITER UNE DOUBLE VALIDATION
+        // =================================================
+
+        if (submission.status === "corrected") {
+
+            return res.status(409).json({
+
+                success: false,
+
+                message:
+                    "Cette soumission a déjà été corrigée."
+
+            });
+
+        }
+
+
+        // =================================================
+        // NOTE PROFESSEUR
+        // =================================================
+
+        const requestedScore =
+            req.body?.teacherScore;
+
+
+        let teacherScore =
+            Number(requestedScore);
+
+
+        // Si aucune note n'est fournie,
+        // on utilise le score automatique.
+
+        if (
+            requestedScore === undefined ||
+            requestedScore === null ||
+            requestedScore === ""
+        ) {
+
+            teacherScore =
+                Number(submission.score) || 0;
+
+        }
+
+
+        const totalPoints =
+            Number(submission.totalPoints) || 0;
+
+
+        // =================================================
+        // VERIFIER LA NOTE
+        // =================================================
+
+        if (
+            Number.isNaN(teacherScore) ||
+            teacherScore < 0 ||
+            teacherScore > totalPoints
+        ) {
+
+            return res.status(400).json({
+
+                success: false,
+
+                message:
+                    `La note doit être comprise entre 0 et ${totalPoints}.`
+
+            });
+
+        }
+
+
+        // =================================================
+        // CALCUL POURCENTAGE FINAL
+        // =================================================
+
+        const finalPercentage =
+            totalPoints > 0
+                ? Math.round(
+                    (teacherScore / totalPoints) * 100
+                )
+                : 0;
+
+
+        // =================================================
+        // ENREGISTRER LA CORRECTION
+        // =================================================
+
+        submission.teacherScore =
+            teacherScore;
+
+        submission.teacherFeedback =
+            req.body?.teacherFeedback || "";
+
+        submission.correctedAt =
+            new Date();
+
+        submission.correctedBy =
+            req.user._id;
+
+        submission.status =
+            "corrected";
+
+
+        // On conserve également la note officielle
+        // dans score / percentage pour faciliter
+        // les statistiques existantes.
+
+        submission.score =
+            teacherScore;
+
+        submission.percentage =
+            finalPercentage;
+
+
+        await submission.save();
+
+
+        // =================================================
+        // NOTIFICATION ETUDIANT
+        // =================================================
+
+        if (submission.student?._id) {
+
+            const teacherName =
+                req.user.firstName ||
+                req.user.name ||
+                "Votre enseignant";
+
+
+            await Notification.create({
+
+                recipient:
+                    submission.student._id,
+
+                sender:
+                    req.user._id,
+
+                title:
+                    "Quiz corrigé",
+
+                message:
+                    `${teacherName} a corrigé votre quiz « ${submission.quiz.title} ». Votre note est de ${teacherScore}/${totalPoints}.`,
+
+                type:
+                    "quiz",
+
+                entityType:
+                    "quiz",
+
+                entityId:
+                    submission.quiz._id,
+
+                isRead:
+                    false
+
+            });
+
+        }
+
+
+        // =================================================
+        // REPONSE
+        // =================================================
+
+        return res.json({
+
+            success: true,
+
+            message:
+                "Quiz corrigé et validé avec succès.",
+
+            submission
+
+        });
+
+    }
+
+    catch (error) {
+
+        console.error(
+            "Erreur correction quiz :",
+            error
+        );
+
+        return res.status(500).json({
+
+            success: false,
+
+            message:
+                "Impossible de corriger le quiz."
 
         });
 

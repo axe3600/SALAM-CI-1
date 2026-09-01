@@ -1,8 +1,9 @@
 import mongoose from "mongoose";
 
-// =====================================================
-// REPONSE D'UN ETUDIANT
-// =====================================================
+
+// ============================================================
+// RÉPONSE D'UN ÉTUDIANT
+// ============================================================
 
 const answerSchema = new mongoose.Schema(
     {
@@ -12,13 +13,17 @@ const answerSchema = new mongoose.Schema(
         },
 
         selectedAnswer: {
-            type: Number,
-            default: null
+            type: String,
+            default: ""
         },
 
+        // ====================================================
+        // INFORMATIONS DE CORRECTION
+        // ====================================================
+
         correctAnswer: {
-            type: Number,
-            required: true
+            type: String,
+            default: ""
         },
 
         isCorrect: {
@@ -37,26 +42,17 @@ const answerSchema = new mongoose.Schema(
 );
 
 
-// =====================================================
+// ============================================================
 // SOUMISSION DU QUIZ
-// =====================================================
+// ============================================================
 
 const quizSubmissionSchema = new mongoose.Schema(
     {
-        // =================================================
-        // ETUDIANT
-        // =================================================
-
         student: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "User",
             required: true
         },
-
-
-        // =================================================
-        // QUIZ
-        // =================================================
 
         quiz: {
             type: mongoose.Schema.Types.ObjectId,
@@ -64,21 +60,11 @@ const quizSubmissionSchema = new mongoose.Schema(
             required: true
         },
 
-
-        // =================================================
-        // CHAPITRE
-        // =================================================
-
         chapter: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "Chapter",
             required: true
         },
-
-
-        // =================================================
-        // COURS
-        // =================================================
 
         course: {
             type: mongoose.Schema.Types.ObjectId,
@@ -86,74 +72,82 @@ const quizSubmissionSchema = new mongoose.Schema(
             required: true
         },
 
-
-        // =================================================
-        // REPONSES
-        // =================================================
-
         answers: {
             type: [answerSchema],
             default: []
         },
 
-
-        // =================================================
-        // SCORE
-        // =================================================
+        // ====================================================
+        // SCORE AUTOMATIQUE
+        // ====================================================
 
         score: {
             type: Number,
             default: 0
         },
 
-
         totalPoints: {
             type: Number,
             default: 0
         },
-
 
         percentage: {
             type: Number,
             default: 0
         },
 
-
-        // =================================================
+        // ====================================================
         // STATUT
-        // =================================================
+        // ====================================================
 
         status: {
             type: String,
-
             enum: [
                 "submitted",
                 "corrected"
             ],
-
             default: "submitted"
         },
 
+        // ====================================================
+        // CORRECTION PROFESSEUR
+        // ====================================================
 
-        // =================================================
-        // DATE DE SOUMISSION
-        // =================================================
+        teacherScore: {
+            type: Number,
+            default: null
+        },
+
+        teacherFeedback: {
+            type: String,
+            default: ""
+        },
+
+        correctedAt: {
+            type: Date,
+            default: null
+        },
+
+        correctedBy: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "User",
+            default: null
+        },
 
         submittedAt: {
             type: Date,
             default: Date.now
         }
     },
-
     {
         timestamps: true
     }
 );
 
 
-// =====================================================
-// ANTI DOUBLE SOUMISSION
-// =====================================================
+// ============================================================
+// EMPÊCHER PLUSIEURS SOUMISSIONS DU MÊME QUIZ
+// ============================================================
 
 quizSubmissionSchema.index(
     {
@@ -165,10 +159,6 @@ quizSubmissionSchema.index(
     }
 );
 
-
-// =====================================================
-// EXPORT
-// =====================================================
 
 export default mongoose.model(
     "QuizSubmission",

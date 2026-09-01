@@ -32,6 +32,7 @@ function StudentQuiz() {
 
     const [submissionLoaded, setSubmissionLoaded] = useState(false);
 
+    const [submissionStatus, setSubmissionStatus] = useState(null);
 
     // ======================================
     // CHARGER LE QUIZ
@@ -68,65 +69,91 @@ function StudentQuiz() {
                         await API.get(
                             `/quizzes/${id}/submission`
                         );
-                
+
                     const submission =
                         submissionResponse.data?.submission;
-                
-                    if (
-                        submissionResponse.data?.submitted &&
-                        submission
-                    ) {
-                
-                        setSubmitted(true);
-                
-                        setScore(
-                            Number(submission.score) || 0
-                        );
-                
-                
-                        // ---------------------------------------------
-                        // RESTAURER LES REPONSES
-                        // ---------------------------------------------
-                
-                        const savedAnswers = {};
-                
-                        submission.answers?.forEach(
-                            (answer, index) => {
-                
-                                if (
-                                    answer.selectedAnswer !== null &&
-                                    answer.selectedAnswer !== undefined
-                                ) {
-                
-                                    savedAnswers[index] =
-                                        Number(
-                                            answer.selectedAnswer
-                                        );
-                
-                                }
-                
+
+                        if (
+                            submissionResponse.data?.submitted &&
+                            submission
+                        ) {
+
+                            setSubmitted(true);
+
+                            // =================================================
+                            // STATUT DE LA SOUMISSION
+                            // =================================================
+
+                            setSubmissionStatus(
+                                submission.status || "submitted"
+                            );
+
+
+                            // =================================================
+                            // NE RECUPERER LA NOTE QUE SI LA COPIE EST CORRIGEE
+                            // =================================================
+
+                            if (submission.status === "corrected") {
+
+                                setScore(
+                                    Number(
+                                        submission.teacherScore ??
+                                        submission.score
+                                    ) || 0
+                                );
+
                             }
-                        );
-                
-                        setAnswers(savedAnswers);
-                
-                    }
-                
+
+                            else {
+
+                                setScore(0);
+
+                            }
+
+
+                            // =================================================
+                            // RESTAURER LES REPONSES
+                            // =================================================
+
+                            const savedAnswers = {};
+
+                            submission.answers?.forEach(
+                                (answer, index) => {
+
+                                    if (
+                                        answer.selectedAnswer !== null &&
+                                        answer.selectedAnswer !== undefined
+                                    ) {
+
+                                        savedAnswers[index] =
+                                            Number(
+                                                answer.selectedAnswer
+                                            );
+
+                                    }
+
+                                }
+                            );
+
+                            setAnswers(savedAnswers);
+
+                        }
+
                 }
-                
+
                 catch (submissionError) {
-                
+
                     console.error(
                         "Erreur récupération soumission quiz :",
                         submissionError
                     );
-                
+
                 }
-                
+
                 finally {
-                
+
                     setSubmissionLoaded(true);
-                
+
                 }
 
             }
@@ -254,19 +281,21 @@ const handleSubmit = async () => {
         // =================================================
         // RECUPERER LE RESULTAT SERVEUR
         // =================================================
-
         const submission =
-            response.data?.submission;
+        response.data?.submission;
 
 
-        setScore(
-            Number(
-                submission?.score
-            ) || 0
-        );
+    // =================================================
+    // LA COPIE EST EN ATTENTE DE CORRECTION
+    // =================================================
 
+    setSubmissionStatus(
+        submission?.status || "submitted"
+    );
 
-        setSubmitted(true);
+    setScore(0);
+
+    setSubmitted(true);
 
 
         window.scrollTo({
@@ -301,17 +330,34 @@ const handleSubmit = async () => {
 
             if (submission) {
 
-                setScore(
-                    Number(
-                        submission.score
-                    ) || 0
+                setSubmissionStatus(
+                    submission.status || "submitted"
                 );
+
+
+                if (
+                    submission.status === "corrected"
+                ) {
+
+                    setScore(
+                        Number(
+                            submission.teacherScore ??
+                            submission.score
+                        ) || 0
+                    );
+
+                }
+
+                else {
+
+                    setScore(0);
+
+                }
 
             }
 
 
             setSubmitted(true);
-
 
             return;
 
@@ -521,8 +567,12 @@ const handleSubmit = async () => {
         Object.keys(answers).length;
 
 
+        const isCorrected =
+        submissionStatus === "corrected";
+
+
     const percentage =
-        quiz.totalPoints > 0
+        isCorrected && quiz.totalPoints > 0
             ? Math.round(
                 (score / quiz.totalPoints) * 100
             )
@@ -685,70 +735,114 @@ const handleSubmit = async () => {
                 </div>
 
 
-                {/* RESULTAT */}
+{/* RESULTAT */}
 
-                {submitted && (
+{submitted && (
 
-                    <div className="
-                        mt-6
-                        bg-green-50
-                        border
-                        border-green-200
-                        rounded-3xl
-                        p-7
-                    ">
+<div className={`
+    mt-6
+    rounded-3xl
+    p-7
+    border
+    ${
+        isCorrected
+            ? "bg-green-50 border-green-200"
+            : "bg-blue-50 border-blue-200"
+    }
+`}>
 
-                        <div className="
-                            flex
-                            items-center
-                            gap-4
-                        ">
+    <div className="
+        flex
+        items-center
+        gap-4
+    ">
 
-                            <FaCheckCircle
-                                className="
-                                    text-green-600
-                                    text-3xl
-                                "
-                            />
-
-
-                            <div>
-
-                                <h2 className="
-                                    text-xl
-                                    font-bold
-                                    text-green-800
-                                ">
-
-                                    Quiz terminé
-
-                                </h2>
+        <FaCheckCircle
+            className={`
+                text-3xl
+                ${
+                    isCorrected
+                        ? "text-green-600"
+                        : "text-blue-600"
+                }
+            `}
+        />
 
 
-                                <p className="
-                                    text-green-700
-                                    mt-1
-                                ">
+        <div>
 
-                                    Votre score :
-                                    {" "}
-                                    <strong>
-                                        {score}
-                                    </strong>
-                                    {" / "}
-                                    {quiz.totalPoints || 0}
-                                    {" "}
-                                    ({percentage}%)
+            <h2 className={`
+                text-xl
+                font-bold
+                ${
+                    isCorrected
+                        ? "text-green-800"
+                        : "text-blue-800"
+                }
+            `}>
 
-                                </p>
+                {isCorrected
+                    ? "Quiz corrigé"
+                    : "Quiz envoyé"
+                }
 
-                            </div>
+            </h2>
 
-                        </div>
 
-                    </div>
+            {isCorrected ? (
 
-                )}
+                <p className="
+                    text-green-700
+                    mt-1
+                ">
+
+                    Votre score :
+                    {" "}
+
+                    <strong>
+                        {score}
+                    </strong>
+
+                    {" / "}
+
+                    {quiz.totalPoints || 0}
+
+                    {" "}
+
+                    ({percentage}%)
+
+                </p>
+
+            ) : (
+
+                <p className="
+                    text-blue-700
+                    mt-1
+                ">
+
+                    Votre copie a bien été envoyée
+                    au professeur.
+
+                    <br />
+
+                    <span className="font-medium">
+
+                        Votre note sera disponible
+                        après correction.
+
+                    </span>
+
+                </p>
+
+            )}
+
+        </div>
+
+    </div>
+
+</div>
+
+)}
 
 
                 {/* QUESTIONS */}
@@ -856,7 +950,7 @@ const handleSubmit = async () => {
                                                 `;
 
                                                 if (
-                                                    submitted
+                                                    isCorrected
                                                 ) {
 
                                                     if (
@@ -1061,55 +1155,74 @@ const handleSubmit = async () => {
 
                 {submitted && (
 
-                    <div className="
-                        flex
-                        justify-center
-                        mt-6
-                    ">
+<div className="
+    flex
+    flex-col
+    items-center
+    gap-2
+    mt-6
+">
 
-                       <p className="
-                            text-green-700
-                            mt-2
-                            text-sm
-                            font-medium
-                       ">
-                           ✓ Votre quiz a été envoyé au professeur.
-                        </p>
+    <p className={`
+        text-sm
+        font-medium
+        ${
+            isCorrected
+                ? "text-green-700"
+                : "text-blue-700"
+        }
+    `}>
 
-                        <p className="
-                            text-green-600
-                            mt-1
-                            text-sm
-                       ">
-                          Votre soumission a bien été enregistrée.
-                        </p>
+        {isCorrected
+            ? "✓ Votre copie a été corrigée."
+            : "✓ Votre quiz a bien été envoyé au professeur."
+        }
 
-                        <button
-                            type="button"
-                            onClick={() => navigate(-1)}
-                            className="
-                                inline-flex
-                                items-center
-                                gap-2
-                                bg-purple-600
-                                hover:bg-purple-700
-                                text-white
-                                px-6
-                                py-3
-                                rounded-xl
-                                font-semibold
-                            "
-                        >
+    </p>
 
-                            <FaArrowLeft />
 
-                            Retour à la formation
+    {!isCorrected && (
 
-                        </button>
+        <p className="
+            text-gray-500
+            text-sm
+        ">
 
-                    </div>
+            Vous recevrez une notification
+            lorsque votre correction sera disponible.
 
-                )}
+        </p>
+
+    )}
+
+
+    <button
+        type="button"
+        onClick={() => navigate(-1)}
+        className="
+            inline-flex
+            items-center
+            gap-2
+            bg-purple-600
+            hover:bg-purple-700
+            text-white
+            px-6
+            py-3
+            rounded-xl
+            font-semibold
+            mt-2
+        "
+    >
+
+        <FaArrowLeft />
+
+        Retour à la formation
+
+    </button>
+
+</div>
+
+)}
 
             </div>
 

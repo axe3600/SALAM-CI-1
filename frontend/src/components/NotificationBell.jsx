@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 
+import { useNavigate } from "react-router-dom";
+
 import {
     FaBell,
     FaVideo,
@@ -82,6 +84,8 @@ const getNotificationIcon = (type) => {
 
 function NotificationBell() {
 
+    const navigate = useNavigate();
+
     const user =
         JSON.parse(
             localStorage.getItem("user")
@@ -98,7 +102,7 @@ function NotificationBell() {
 
     const [showDeleteModal, setShowDeleteModal] =
         useState(false);
-    
+
     const [deleting, setDeleting] =
         useState(false);
 
@@ -149,91 +153,91 @@ function NotificationBell() {
     useEffect(() => {
 
         loadNotifications();
-    
+
         // =====================================================
         // VERIFIER L'UTILISATEUR
         // =====================================================
-    
+
         if (!user?._id) {
-    
+
             return;
-    
+
         }
-    
-    
+
+
         // =====================================================
         // CONNEXION SOCKET
         // =====================================================
-    
+
         const socket =
             socketService.connect();
-    
-    
+
+
         // =====================================================
         // ENREGISTRER L'UTILISATEUR
         // =====================================================
-    
+
         socket.emit(
             "notification:register",
             user._id
         );
-    
-    
+
+
         // =====================================================
         // RECEVOIR UNE NOUVELLE NOTIFICATION
         // =====================================================
-    
+
         const handleNewNotification =
             (notification) => {
-    
+
                 console.log(
                     "🔔 Nouvelle notification reçue :",
                     notification
                 );
-    
-    
+
+
                 // Ajouter en haut de la liste
-    
+
                 setNotifications(
                     previous => [
-    
+
                         notification,
-    
+
                         ...previous
-    
+
                     ]
                 );
-    
-    
+
+
                 // Augmenter le compteur
-    
+
                 setUnreadCount(
                     previous =>
                         previous + 1
                 );
-    
+
             };
-    
-    
+
+
         socket.on(
             "notification:new",
             handleNewNotification
         );
-    
-    
+
+
         // =====================================================
         // NETTOYAGE
         // =====================================================
-    
+
         return () => {
-    
+
             socket.off(
                 "notification:new",
                 handleNewNotification
             );
-    
+
         };
-    
+
     }, []);
 
 
@@ -280,6 +284,10 @@ function NotificationBell() {
 
         try {
 
+            // =====================================================
+            // MARQUER LA NOTIFICATION COMME LUE
+            // =====================================================
+
             if (!notification.isRead) {
 
                 await notificationService.markAsRead(
@@ -302,6 +310,51 @@ function NotificationBell() {
                     previous =>
                         Math.max(0, previous - 1)
                 );
+
+            }
+
+
+            // =====================================================
+            // NAVIGATION SELON LE TYPE DE NOTIFICATION
+            // =====================================================
+
+            if (
+                notification.type === "quiz" &&
+                notification.entityId
+            ) {
+
+                // -------------------------------------------------
+                // PROFESSEUR
+                // -------------------------------------------------
+
+                if (user?.role === "teacher") {
+
+                    navigate(
+                        `/teacher-quiz-submissions/${notification.entityId}`
+                    );
+
+                    setOpen(false);
+
+                    return;
+
+                }
+
+
+                // -------------------------------------------------
+                // ÉTUDIANT
+                // -------------------------------------------------
+
+                if (user?.role === "student") {
+
+                    navigate(
+                        `/student-quiz/${notification.entityId}`
+                    );
+
+                    setOpen(false);
+
+                    return;
+
+                }
 
             }
 

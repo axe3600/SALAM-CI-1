@@ -2,20 +2,19 @@ import express from "express";
 import authMiddleware from "../middleware/authMiddleware.js";
 
 import {
-
     createQuiz,
     getQuizzesByChapter,
     getQuizById,
     updateQuiz,
     deleteQuiz,
-
     addQuestion,
     updateQuestion,
     deleteQuestion,
-
     getMyQuizSubmission,
-    submitQuiz
-
+    submitQuiz,
+    getQuizSubmissionsForTeacher,
+    getTeacherQuizSubmission,
+    correctQuizSubmission
 } from "../controllers/quizController.js";
 
 const router = express.Router();
@@ -39,6 +38,37 @@ router.get(
     getQuizzesByChapter
 );
 
+// ======================================================
+// SOUMISSIONS D'UN QUIZ POUR LE PROFESSEUR
+// ======================================================
+
+router.get(
+    "/:id/submissions",
+    authMiddleware,
+    getQuizSubmissionsForTeacher
+);
+
+
+// ======================================================
+// DETAIL D'UNE SOUMISSION
+// ======================================================
+
+router.get(
+    "/submissions/:submissionId",
+    authMiddleware,
+    getTeacherQuizSubmission
+);
+
+
+// ======================================================
+// CORRIGER UNE SOUMISSION
+// ======================================================
+
+router.patch(
+    "/submissions/:submissionId/correct",
+    authMiddleware,
+    correctQuizSubmission
+);
 
 // ======================================================
 // SOUMISSION DE L'ETUDIANT

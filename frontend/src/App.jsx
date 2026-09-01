@@ -43,6 +43,8 @@ import DashboardTeacher from "./pages/teacher/Dashboard"
 import CoursesTeacher from "./pages/teacher/Courses"
 import CourseContent from "./pages/teacher/CourseContent"
 import ChapterContent from "./pages/teacher/ChapterContent";
+import QuizSubmissions from "./pages/teacher/QuizSubmissions";
+import QuizSubmissionDetails from "./pages/teacher/QuizSubmissionDetails";
 import CoursePreview from "./pages/teacher/CoursePreview";
 import CourseStatistics from "./pages/teacher/CourseStatistics";
 import TeacherStudents from "./pages/teacher/TeacherStudents";
@@ -298,6 +300,20 @@ function App() {
       <Route
         path="/teacher-chapter-content/:chapterId"
         element={<ChapterContent />}
+      />
+
+      <Route
+        path="/teacher-quiz-submissions/:quizId"
+        element={
+          <ProtectedRoute>
+            <QuizSubmissions />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/teacher-quiz-submission/:submissionId"
+        element={<QuizSubmissionDetails />}
       />
 
       <Route
