@@ -1,5 +1,5 @@
-
 import fs from "fs";
+import cloudinary from "../config/cloudinary.js";
 import Video from "../models/Video.js";
 
 // ============================================================
@@ -12,40 +12,54 @@ export const createVideo = async (req, res) => {
     try {
 
         const {
-
             title,
-
             description,
-
             duration,
-
             order,
-
             chapter
-
         } = req.body;
 
+        if (!req.file) {
+
+            return res.status(400).json({
+                message: "Veuillez sélectionner une vidéo."
+            });
+
+        }
+
         // ==========================
-        // VIDEO
+        // UPLOAD CLOUDINARY
         // ==========================
 
-        const video = req.file
-            ? req.file.path
-            : "";
+        const result = await cloudinary.uploader.upload(
+            req.file.path,
+            {
+                folder: "salam-ci/videos",
+                resource_type: "video"
+            }
+        );
+
+        // ==========================
+        // SUPPRIMER LE FICHIER TEMPORAIRE
+        // ==========================
+
+        if (fs.existsSync(req.file.path)) {
+            fs.unlinkSync(req.file.path);
+        }
+
+        // ==========================
+        // CREATION
+        // ==========================
 
         const newVideo = await Video.create({
 
             title,
-
             description,
-
             duration,
-
             order,
-
             chapter,
 
-            video
+            video: result.secure_url
 
         });
 
@@ -61,6 +75,16 @@ export const createVideo = async (req, res) => {
 
     catch (error) {
 
+        // Nettoyage en cas d'erreur
+        if (req.file?.path && fs.existsSync(req.file.path)) {
+            fs.unlinkSync(req.file.path);
+        }
+
+        console.error(
+            "ERREUR AJOUT VIDEO :",
+            error
+        );
+
         res.status(500).json({
 
             message: error.message
@@ -70,6 +94,7 @@ export const createVideo = async (req, res) => {
     }
 
 };
+
 
 // ============================================================
 // VIDEOS D'UN CHAPITRE
@@ -83,9 +108,7 @@ export const getVideosByChapter = async (req, res) => {
 
             chapter: req.params.chapterId
 
-        })
-
-        .sort({
+        }).sort({
 
             order: 1
 
@@ -112,6 +135,7 @@ export const getVideosByChapter = async (req, res) => {
 // MODIFIER UNE VIDEO
 // PUT /api/videos/:id
 // ============================================================
+
 export const updateVideo = async (req, res) => {
 
     try {
@@ -133,15 +157,98 @@ export const updateVideo = async (req, res) => {
         video.duration = req.body.duration;
         video.order = req.body.order;
 
+        // ==========================
+        // NOUVELLE VIDEO
+        // ==========================
+
         if (req.file) {
 
-            if (video.video && fs.existsSync(video.video)) {
+            const result = await cloudinary.uploader.upload(
 
-                fs.unlinkSync(video.video);
+                req.file.path,
+
+                {
+                    folder: "salam-ci/videos",
+                    resource_type: "video"
+                }
+
+            );
+
+            // Supprimer fichier temporaire
+            if (fs.existsSync(req.file.path)) {
+                fs.unlinkSync(req.file.path);
+            }
+
+            // ==========================
+            // SUPPRIMER ANCIENNE VIDEO
+            // ==========================
+
+            if (
+                video.video &&
+                video.video.includes("res.cloudinary.com")
+            ) {
+
+                try {
+
+                    const uploadMarker = "/upload/";
+
+                    const uploadIndex =
+                        video.video.indexOf(uploadMarker);
+
+                    if (uploadIndex !== -1) {
+
+                        let publicId =
+                            video.video.substring(
+                                uploadIndex + uploadMarker.length
+                            );
+
+                        // Supprimer version Cloudinary
+                        if (publicId.startsWith("v")) {
+
+                            const versionEnd =
+                                publicId.indexOf("/");
+
+                            if (versionEnd !== -1) {
+
+                                publicId =
+                                    publicId.substring(
+                                        versionEnd + 1
+                                    );
+
+                            }
+
+                        }
+
+                        // Supprimer extension
+                        publicId =
+                            publicId.replace(
+                                /\.[^/.]+$/,
+                                ""
+                            );
+
+                        await cloudinary.uploader.destroy(
+                            publicId,
+                            {
+                                resource_type: "video"
+                            }
+                        );
+
+                    }
+
+                }
+
+                catch (deleteError) {
+
+                    console.error(
+                        "Erreur suppression ancienne vidéo :",
+                        deleteError.message
+                    );
+
+                }
 
             }
 
-            video.video = req.file.path;
+            video.video = result.secure_url;
 
         }
 
@@ -159,6 +266,15 @@ export const updateVideo = async (req, res) => {
 
     catch (error) {
 
+        if (req.file?.path && fs.existsSync(req.file.path)) {
+            fs.unlinkSync(req.file.path);
+        }
+
+        console.error(
+            "ERREUR MODIFICATION VIDEO :",
+            error
+        );
+
         res.status(500).json({
 
             message: error.message
@@ -169,10 +285,12 @@ export const updateVideo = async (req, res) => {
 
 };
 
+
 // ============================================================
 // SUPPRIMER UNE VIDEO
 // DELETE /api/videos/:id
 // ============================================================
+
 export const deleteVideo = async (req, res) => {
 
     try {
@@ -189,7 +307,76 @@ export const deleteVideo = async (req, res) => {
 
         }
 
-        if (video.video && fs.existsSync(video.video)) {
+        // ==========================
+        // SUPPRESSION CLOUDINARY
+        // ==========================
+
+        if (
+            video.video &&
+            video.video.includes("res.cloudinary.com")
+        ) {
+
+            try {
+
+                const uploadMarker = "/upload/";
+
+                const uploadIndex =
+                    video.video.indexOf(uploadMarker);
+
+                if (uploadIndex !== -1) {
+
+                    let publicId =
+                        video.video.substring(
+                            uploadIndex + uploadMarker.length
+                        );
+
+                    if (publicId.startsWith("v")) {
+
+                        const versionEnd =
+                            publicId.indexOf("/");
+
+                        if (versionEnd !== -1) {
+
+                            publicId =
+                                publicId.substring(
+                                    versionEnd + 1
+                                );
+
+                        }
+
+                    }
+
+                    publicId =
+                        publicId.replace(
+                            /\.[^/.]+$/,
+                            ""
+                        );
+
+                    await cloudinary.uploader.destroy(
+                        publicId,
+                        {
+                            resource_type: "video"
+                        }
+                    );
+
+                }
+
+            }
+
+            catch (deleteError) {
+
+                console.error(
+                    "Erreur suppression Cloudinary :",
+                    deleteError.message
+                );
+
+            }
+
+        }
+        else if (
+            video.video &&
+            fs.existsSync(video.video)
+        ) {
 
             fs.unlinkSync(video.video);
 
@@ -206,6 +393,11 @@ export const deleteVideo = async (req, res) => {
     }
 
     catch (error) {
+
+        console.error(
+            "ERREUR SUPPRESSION VIDEO :",
+            error
+        );
 
         res.status(500).json({
 

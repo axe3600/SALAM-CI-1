@@ -49,13 +49,64 @@ export const createCourse = async (req, res) => {
     
     }
 
-    const pdf =
-
-    req.files?.pdf?.[0]?.path.replace(/\\/g, "/") || "";
-
-    const video =
-
-    req.files?.video?.[0]?.path.replace(/\\/g, "/") || "";
+    let pdf = "";
+    let video = "";
+    
+    // =========================
+    // PDF → CLOUDINARY
+    // =========================
+    
+    if (req.files?.pdf?.[0]) {
+    
+        const pdfFile =
+            req.files.pdf[0];
+    
+        const result =
+            await cloudinary.uploader.upload(
+    
+                pdfFile.path,
+    
+                {
+                    folder: "salam-ci/courses/pdfs",
+                    resource_type: "raw"
+                }
+    
+            );
+    
+        pdf =
+            result.secure_url;
+    
+        await fs.unlink(pdfFile.path);
+    
+    }
+    
+    // =========================
+    // VIDEO → CLOUDINARY
+    // =========================
+    
+    if (req.files?.video?.[0]) {
+    
+        const videoFile =
+            req.files.video[0];
+    
+        const result =
+            await cloudinary.uploader.upload(
+    
+                videoFile.path,
+    
+                {
+                    folder: "salam-ci/courses/videos",
+                    resource_type: "video"
+                }
+    
+            );
+    
+        video =
+            result.secure_url;
+    
+        await fs.unlink(videoFile.path);
+    
+    }
     
     // =========================
     // CRÉATION DU COURS
@@ -856,23 +907,89 @@ export const updateCourse = async (req, res) => {
     // FICHIERS (si envoyés)
     // =========================
 
-    if (req.files?.thumbnail?.[0]) {
+// =========================
+// NOUVEAU THUMBNAIL
+// =========================
 
-      course.thumbnail = req.files.thumbnail[0].path
+if (req.files?.thumbnail?.[0]) {
 
-    }
+  const file =
+      req.files.thumbnail[0];
 
-    if (req.files?.pdf?.[0]) {
+  const result =
+      await cloudinary.uploader.upload(
 
-      course.pdf = req.files.pdf[0].path
+          file.path,
 
-    }
+          {
+              folder: "salam-ci/courses",
+              resource_type: "image"
+          }
 
-    if (req.files?.video?.[0]) {
+      );
 
-      course.video = req.files.video[0].path
+  course.thumbnail =
+      result.secure_url;
 
-    }
+  await fs.unlink(file.path);
+
+}
+
+// =========================
+// NOUVEAU PDF
+// =========================
+
+if (req.files?.pdf?.[0]) {
+
+  const file =
+      req.files.pdf[0];
+
+  const result =
+      await cloudinary.uploader.upload(
+
+          file.path,
+
+          {
+              folder: "salam-ci/courses/pdfs",
+              resource_type: "raw"
+          }
+
+      );
+
+  course.pdf =
+      result.secure_url;
+
+  await fs.unlink(file.path);
+
+}
+
+// =========================
+// NOUVELLE VIDEO
+// =========================
+
+if (req.files?.video?.[0]) {
+
+  const file =
+      req.files.video[0];
+
+  const result =
+      await cloudinary.uploader.upload(
+
+          file.path,
+
+          {
+              folder: "salam-ci/courses/videos",
+              resource_type: "video"
+          }
+
+      );
+
+  course.video =
+      result.secure_url;
+
+  await fs.unlink(file.path);
+
+}
 
     await course.save()
 

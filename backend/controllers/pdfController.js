@@ -1,22 +1,62 @@
+import fs from "fs";
+import cloudinary from "../config/cloudinary.js";
 import Pdf from "../models/Pdf.js";
 
 // ======================================
 // AJOUTER UN PDF
 // POST /api/pdfs
 // ======================================
+
 export const createPdf = async (req, res) => {
 
     try {
 
         const {
-
             title,
             description,
-            chapter
-
+            chapter,
+            order
         } = req.body;
 
-        const file = req.file?.path || "";
+        if (!req.file) {
+
+            return res.status(400).json({
+
+                message: "Veuillez sélectionner un fichier PDF."
+
+            });
+
+        }
+
+        // ==========================
+        // CLOUDINARY
+        // ==========================
+
+        const result =
+            await cloudinary.uploader.upload(
+
+                req.file.path,
+
+                {
+                    folder: "salam-ci/pdfs",
+                    resource_type: "raw"
+                }
+
+            );
+
+        // ==========================
+        // SUPPRESSION TEMPORAIRE
+        // ==========================
+
+        if (fs.existsSync(req.file.path)) {
+
+            fs.unlinkSync(req.file.path);
+
+        }
+
+        // ==========================
+        // CREATION
+        // ==========================
 
         const pdf = await Pdf.create({
 
@@ -26,7 +66,9 @@ export const createPdf = async (req, res) => {
 
             chapter,
 
-            file
+            order,
+
+            file: result.secure_url
 
         });
 
@@ -42,6 +84,17 @@ export const createPdf = async (req, res) => {
 
     catch (error) {
 
+        if (req.file?.path && fs.existsSync(req.file.path)) {
+
+            fs.unlinkSync(req.file.path);
+
+        }
+
+        console.error(
+            "ERREUR AJOUT PDF :",
+            error
+        );
+
         res.status(500).json({
 
             message: error.message
@@ -52,9 +105,11 @@ export const createPdf = async (req, res) => {
 
 };
 
+
 // ======================================
 // PDF D'UN CHAPITRE
 // ======================================
+
 export const getChapterPdfs = async (req, res) => {
 
     try {
@@ -63,9 +118,7 @@ export const getChapterPdfs = async (req, res) => {
 
             chapter: req.params.chapterId
 
-        })
-
-        .sort({
+        }).sort({
 
             order: 1
 
@@ -87,10 +140,11 @@ export const getChapterPdfs = async (req, res) => {
 
 };
 
+
 // ======================================
 // MODIFIER UN PDF
-// PUT /api/pdfs/:id
 // ======================================
+
 export const updatePdf = async (req, res) => {
 
     try {
@@ -107,14 +161,45 @@ export const updatePdf = async (req, res) => {
 
         }
 
-        pdf.title = req.body.title;
+        pdf.title =
+            req.body.title;
 
-        pdf.description = req.body.description;
+        pdf.description =
+            req.body.description;
 
-        // Si un nouveau fichier est envoyé
+        if (req.body.order !== undefined) {
+
+            pdf.order =
+                req.body.order;
+
+        }
+
+        // ==========================
+        // NOUVEAU PDF
+        // ==========================
+
         if (req.file) {
 
-            pdf.file = req.file.path;
+            const result =
+                await cloudinary.uploader.upload(
+
+                    req.file.path,
+
+                    {
+                        folder: "salam-ci/pdfs",
+                        resource_type: "raw"
+                    }
+
+                );
+
+            if (fs.existsSync(req.file.path)) {
+
+                fs.unlinkSync(req.file.path);
+
+            }
+
+            pdf.file =
+                result.secure_url;
 
         }
 
@@ -132,6 +217,17 @@ export const updatePdf = async (req, res) => {
 
     catch (error) {
 
+        if (req.file?.path && fs.existsSync(req.file.path)) {
+
+            fs.unlinkSync(req.file.path);
+
+        }
+
+        console.error(
+            "ERREUR MODIFICATION PDF :",
+            error
+        );
+
         res.status(500).json({
 
             message: error.message
@@ -142,10 +238,11 @@ export const updatePdf = async (req, res) => {
 
 };
 
+
 // ======================================
 // SUPPRIMER UN PDF
-// DELETE /api/pdfs/:id
 // ======================================
+
 export const deletePdf = async (req, res) => {
 
     try {
@@ -162,6 +259,12 @@ export const deletePdf = async (req, res) => {
 
         }
 
+        // Pour l'instant on supprime seulement
+        // le document MongoDB.
+        //
+        // La suppression Cloudinary pourra être
+        // ajoutée ensuite proprement.
+
         await pdf.deleteOne();
 
         res.status(200).json({
@@ -174,6 +277,11 @@ export const deletePdf = async (req, res) => {
 
     catch (error) {
 
+        console.error(
+            "ERREUR SUPPRESSION PDF :",
+            error
+        );
+
         res.status(500).json({
 
             message: error.message
@@ -183,5 +291,3 @@ export const deletePdf = async (req, res) => {
     }
 
 };
-
-
