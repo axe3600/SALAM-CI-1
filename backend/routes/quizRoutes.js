@@ -1,4 +1,5 @@
 import express from "express";
+import authMiddleware from "../middleware/authMiddleware.js";
 
 import {
 
@@ -10,7 +11,10 @@ import {
 
     addQuestion,
     updateQuestion,
-    deleteQuestion
+    deleteQuestion,
+
+    getMyQuizSubmission,
+    submitQuiz
 
 } from "../controllers/quizController.js";
 
@@ -26,13 +30,37 @@ router.post(
     createQuiz
 );
 
-// Tous les quiz d'un chapitre
+// ======================================================
+// TOUS LES QUIZ D'UN CHAPITRE
+// ======================================================
+
 router.get(
     "/chapter/:chapterId",
     getQuizzesByChapter
 );
 
-// Récupérer un quiz par son ID
+
+// ======================================================
+// SOUMISSION DE L'ETUDIANT
+// ======================================================
+
+router.get(
+    "/:id/submission",
+    authMiddleware,
+    getMyQuizSubmission
+);
+
+router.post(
+    "/:id/submit",
+    authMiddleware,
+    submitQuiz
+);
+
+
+// ======================================================
+// RECUPERER UN QUIZ PAR SON ID
+// ======================================================
+
 router.get(
     "/:id",
     getQuizById

@@ -28,6 +28,10 @@ function StudentQuiz() {
 
     const [score, setScore] = useState(0);
 
+    const [submitting, setSubmitting] = useState(false);
+
+    const [submissionLoaded, setSubmissionLoaded] = useState(false);
+
 
     // ======================================
     // CHARGER LE QUIZ
@@ -58,6 +62,72 @@ function StudentQuiz() {
                 );
 
                 setQuiz(response.data);
+
+                try {
+                    const submissionResponse =
+                        await API.get(
+                            `/quizzes/${id}/submission`
+                        );
+                
+                    const submission =
+                        submissionResponse.data?.submission;
+                
+                    if (
+                        submissionResponse.data?.submitted &&
+                        submission
+                    ) {
+                
+                        setSubmitted(true);
+                
+                        setScore(
+                            Number(submission.score) || 0
+                        );
+                
+                
+                        // ---------------------------------------------
+                        // RESTAURER LES REPONSES
+                        // ---------------------------------------------
+                
+                        const savedAnswers = {};
+                
+                        submission.answers?.forEach(
+                            (answer, index) => {
+                
+                                if (
+                                    answer.selectedAnswer !== null &&
+                                    answer.selectedAnswer !== undefined
+                                ) {
+                
+                                    savedAnswers[index] =
+                                        Number(
+                                            answer.selectedAnswer
+                                        );
+                
+                                }
+                
+                            }
+                        );
+                
+                        setAnswers(savedAnswers);
+                
+                    }
+                
+                }
+                
+                catch (submissionError) {
+                
+                    console.error(
+                        "Erreur récupération soumission quiz :",
+                        submissionError
+                    );
+                
+                }
+                
+                finally {
+                
+                    setSubmissionLoaded(true);
+                
+                }
 
             }
 
@@ -116,48 +186,155 @@ function StudentQuiz() {
     };
 
 
-    // ======================================
-    // ENVOYER LE QUIZ
-    // ======================================
+// ======================================
+// ENVOYER LE QUIZ
+// ======================================
+const handleSubmit = async () => {
 
-    const handleSubmit = () => {
+    if (
+        !quiz?.questions?.length ||
+        submitting ||
+        submitted
+    ) {
 
-        if (!quiz?.questions?.length) {
-            return;
-        }
+        return;
 
-        let totalScore = 0;
+    }
 
-        quiz.questions.forEach(
-            (question, index) => {
 
-                const selectedAnswer =
-                    answers[index];
+    // =================================================
+    // VERIFIER QUE TOUTES LES QUESTIONS SONT REPONDUES
+    // =================================================
 
-                if (
-                    selectedAnswer !== undefined &&
-                    Number(selectedAnswer) ===
-                    Number(question.correctAnswer)
-                ) {
+    if (
+        Object.keys(answers).length <
+        quiz.questions.length
+    ) {
 
-                    totalScore +=
-                        Number(question.points) || 0;
+        return;
 
-                }
+    }
 
-            }
+
+    try {
+
+        setSubmitting(true);
+
+        setError("");
+
+
+        console.log(
+            "📨 ENVOI DU QUIZ :",
+            quiz._id
         );
 
-        setScore(totalScore);
+
+        // =================================================
+        // ENVOYER LES REPONSES AU BACKEND
+        // =================================================
+
+        const response =
+            await API.post(
+
+                `/quizzes/${quiz._id}/submit`,
+
+                {
+                    answers
+                }
+
+            );
+
+
+        console.log(
+            "✅ QUIZ SOUMIS :",
+            response.data
+        );
+
+
+        // =================================================
+        // RECUPERER LE RESULTAT SERVEUR
+        // =================================================
+
+        const submission =
+            response.data?.submission;
+
+
+        setScore(
+            Number(
+                submission?.score
+            ) || 0
+        );
+
 
         setSubmitted(true);
 
+
         window.scrollTo({
+
             top: 0,
+
             behavior: "smooth"
+
         });
 
-    };
+    }
+
+    catch (error) {
+
+        console.error(
+            "❌ Erreur envoi quiz :",
+            error
+        );
+
+
+        // =================================================
+        // CAS : DEJA SOUMIS
+        // =================================================
+
+        if (
+            error.response?.status === 409
+        ) {
+
+            const submission =
+                error.response?.data?.submission;
+
+
+            if (submission) {
+
+                setScore(
+                    Number(
+                        submission.score
+                    ) || 0
+                );
+
+            }
+
+
+            setSubmitted(true);
+
+
+            return;
+
+        }
+
+
+        setError(
+
+            error.response?.data?.message ||
+
+            "Impossible d'envoyer le quiz."
+
+        );
+
+    }
+
+    finally {
+
+        setSubmitting(false);
+
+    }
+
+};
 
 
     // ======================================
@@ -845,6 +1022,7 @@ function StudentQuiz() {
                                 type="button"
                                 onClick={handleSubmit}
                                 disabled={
+                                    submitting ||
                                     answeredCount <
                                     questions.length
                                 }
@@ -864,10 +1042,12 @@ function StudentQuiz() {
                                 "
                             >
 
-                                <FaCheckCircle />
+                              <FaCheckCircle />
 
-                                Valider le quiz
-
+                                {submitting
+                                  ? "Envoi du quiz..."
+                                  : "Valider le quiz"
+                                }
                             </button>
 
                         </div>
@@ -886,6 +1066,23 @@ function StudentQuiz() {
                         justify-center
                         mt-6
                     ">
+
+                       <p className="
+                            text-green-700
+                            mt-2
+                            text-sm
+                            font-medium
+                       ">
+                           ✓ Votre quiz a été envoyé au professeur.
+                        </p>
+
+                        <p className="
+                            text-green-600
+                            mt-1
+                            text-sm
+                       ">
+                          Votre soumission a bien été enregistrée.
+                        </p>
 
                         <button
                             type="button"
