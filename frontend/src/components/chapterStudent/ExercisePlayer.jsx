@@ -4,7 +4,7 @@ import {
     FaCalendarAlt
 } from "react-icons/fa";
 
-function ExercisePlayer({ exercise, getFileUrl }) {
+function ExercisePlayer({ exercise, getFileUrl, downloadFile }) {
 
     if (!exercise) {
         return null;
@@ -149,6 +149,37 @@ function ExercisePlayer({ exercise, getFileUrl }) {
                     <FaExternalLinkAlt />
                 </a>
             )}
+
+{attachmentUrl && (
+    <button
+        type="button"
+        onClick={() =>
+            downloadFile(
+                exercise.attachment,
+                exercise.title
+                    ? `${exercise.title}.pdf`
+                    : "exercice.pdf"
+            )
+        }
+        className="
+            inline-flex
+            items-center
+            gap-2
+            bg-white
+            hover:bg-gray-100
+            text-orange-700
+            px-5
+            py-3
+            rounded-xl
+            font-semibold
+            border
+            border-orange-200
+            transition
+        "
+    >
+        Télécharger
+    </button>
+)}
 
         </div>
     );

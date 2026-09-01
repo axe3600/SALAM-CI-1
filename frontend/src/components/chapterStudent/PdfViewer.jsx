@@ -3,8 +3,7 @@ import {
     FaExternalLinkAlt
 } from "react-icons/fa";
 
-function PdfViewer({ pdf, getFileUrl }) {
-
+function PdfViewer({ pdf, getFileUrl, downloadFile }) {
     if (!pdf) {
         return null;
     }
@@ -96,27 +95,32 @@ function PdfViewer({ pdf, getFileUrl }) {
                     <FaExternalLinkAlt />
                 </a>
 
-                <a
-                    href={pdfUrl}
-                    download
-                    className="
-                        inline-flex
-                        items-center
-                        gap-2
-                        bg-white
-                        hover:bg-gray-100
-                        text-red-700
-                        px-5
-                        py-3
-                        rounded-xl
-                        font-semibold
-                        border
-                        border-red-200
-                        transition
-                    "
+                <button
+                  type="button"
+                  onClick={() =>
+                    downloadFile(
+                      pdf.file,
+            `         ${pdf.title || "document"}.pdf`
+                    )
+                  }
+                  className="
+                    inline-flex
+                    items-center
+                    gap-2
+                    bg-white
+                    hover:bg-gray-100
+                    text-red-700
+                    px-5
+                    py-3
+                    rounded-xl
+                    font-semibold
+                    border
+                    border-red-200
+                    transition
+                  "
                 >
-                    Télécharger
-                </a>
+                  Télécharger
+                </button>
 
             </div>
 

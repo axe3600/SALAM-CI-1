@@ -67,6 +67,66 @@ const getFileUrl = (filePath) => {
     return `${BACKEND_URL}/${filePath.replace(/^\/+/, "")}`;
 };
 
+// ======================================
+// TELECHARGER UN FICHIER
+// ======================================
+const downloadFile = async (filePath, fileName = "fichier") => {
+
+    const fileUrl = getFileUrl(filePath);
+
+    if (!fileUrl) {
+        return;
+    }
+
+    try {
+
+        const response = await fetch(fileUrl);
+
+        if (!response.ok) {
+            throw new Error(
+                `Erreur téléchargement : ${response.status}`
+            );
+        }
+
+        const blob = await response.blob();
+
+        const blobUrl =
+            window.URL.createObjectURL(blob);
+
+        const link =
+            document.createElement("a");
+
+        link.href = blobUrl;
+
+        link.download = fileName;
+
+        document.body.appendChild(link);
+
+        link.click();
+
+        link.remove();
+
+        window.URL.revokeObjectURL(blobUrl);
+
+    }
+
+    catch (error) {
+
+        console.error(
+            "❌ Erreur téléchargement fichier :",
+            error
+        );
+
+        // Secours : ouverture directe du fichier
+        window.open(
+            fileUrl,
+            "_blank",
+            "noopener,noreferrer"
+        );
+
+    }
+
+};
 
 
     // ======================================
@@ -834,10 +894,21 @@ const getFileUrl = (filePath) => {
             : "/images/course-placeholder.jpg";
 
 
+// ======================================
+// DUREE DU CHAPITRE
+// ======================================
+const chapterDuration =
+    videos
+        .map(video => video.duration)
+        .filter(Boolean)
+        .join(" • ") ||
+    course.duration ||
+    "Non définie";
+
+
     // ======================================
     // RENDU
     // ======================================
-
     return (
 
         <DashboardLayout>
@@ -1343,11 +1414,12 @@ const getFileUrl = (filePath) => {
                                 PDF
                             ========================== */}
                             {pdfs.map((pdf) => (
-                              <PdfViewer
-                                key={pdf._id}
-                                pdf={pdf}
-                                getFileUrl={getFileUrl}
-                              />
+                                <PdfViewer
+                                  key={pdf._id}
+                                  pdf={pdf}
+                                  getFileUrl={getFileUrl}
+                                  downloadFile={downloadFile}
+                                />
                             ))}
 
 
@@ -1373,6 +1445,7 @@ const getFileUrl = (filePath) => {
                                 key={exercise._id}
                                 exercise={exercise}
                                 getFileUrl={getFileUrl}
+                                downloadFile={downloadFile}
                               />
                             ))}
 
@@ -1796,11 +1869,7 @@ const getFileUrl = (filePath) => {
                                         text-sm
                                         text-gray-500
                                     ">
-
-                                        {course.duration ||
-                                            "Non définie"
-                                        }
-
+                                      {chapterDuration}
                                     </p>
 
                                 </div>
