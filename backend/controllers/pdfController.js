@@ -39,7 +39,7 @@ export const createPdf = async (req, res) => {
 
                 {
                     folder: "salam-ci/pdfs",
-                    resource_type: "raw"
+                    resource_type: "image"
                 }
 
             );
@@ -187,7 +187,7 @@ export const updatePdf = async (req, res) => {
 
                     {
                         folder: "salam-ci/pdfs",
-                        resource_type: "raw"
+                        resource_type: "image"
                     }
 
                 );
