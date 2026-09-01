@@ -36,6 +36,7 @@ import Downloads from "./pages/student/Downloads"
 import Profile from "./pages/student/Profile"
 import CoursesCatalog from "./pages/courses/CoursesCatalog"
 import CertificateDetails from "./pages/certificates/CertificateDetails"
+import StudentQuiz from "./pages/student/StudentQuiz";
 
 // TEACHER
 import DashboardTeacher from "./pages/teacher/Dashboard"
@@ -426,6 +427,15 @@ function App() {
       <CourseLearn />
     </ProtectedRoute>
   }
+/>
+
+<Route
+    path="/student-quiz/:id"
+    element={
+        <ProtectedRoute>
+            <StudentQuiz />
+        </ProtectedRoute>
+    }
 />
 
 <Route

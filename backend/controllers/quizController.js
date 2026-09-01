@@ -103,6 +103,43 @@ export const getQuizzesByChapter = async (req, res) => {
 };
 
 // ======================================================
+// RECUPERER UN QUIZ PAR SON ID
+// GET /api/quizzes/:id
+// ======================================================
+export const getQuizById = async (req, res) => {
+
+    try {
+
+        const quiz = await Quiz.findById(req.params.id);
+
+        if (!quiz) {
+
+            return res.status(404).json({
+
+                message: "Quiz introuvable."
+
+            });
+
+        }
+
+        res.status(200).json(quiz);
+
+    }
+
+    catch (error) {
+
+        res.status(500).json({
+
+            message: error.message
+
+        });
+
+    }
+
+};
+
+
+// ======================================================
 // MODIFIER UN QUIZ
 // ======================================================
 export const updateQuiz = async (req, res) => {

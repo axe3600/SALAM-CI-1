@@ -14,11 +14,19 @@ import {
     FaFilePdf,
     FaPlayCircle,
     FaClock,
-    FaGraduationCap
+    FaGraduationCap,
+    FaQuestionCircle,
+    FaClipboardList,
+    FaExternalLinkAlt
 } from "react-icons/fa";
 
 import DashboardLayout from "../../layouts/DashboardLayout";
 import API from "../../services/api";
+
+import VideoPlayer from "../../components/chapterStudent/VideoPlayer";
+import PdfViewer from "../../components/chapterStudent/PdfViewer";
+import QuizPlayer from "../../components/chapterStudent/QuizPlayer";
+import ExercisePlayer from "../../components/chapterStudent/ExercisePlayer";
 
 
 // ======================================
@@ -30,6 +38,35 @@ function CourseLearn() {
     const { id } = useParams();
 
     const navigate = useNavigate();
+
+// ======================================
+// URL DU BACKEND POUR LES FICHIERS
+// ======================================
+const BACKEND_URL =
+(
+    import.meta.env.VITE_API_URL ||
+    "https://salam-ci-backend.onrender.com/api"
+).replace(/\/api\/?$/, "");
+
+// ======================================
+// CONSTRUIRE L'URL D'UN FICHIER
+// ======================================
+const getFileUrl = (filePath) => {
+
+    if (!filePath) {
+        return "";
+    }
+
+    if (
+        filePath.startsWith("http://") ||
+        filePath.startsWith("https://")
+    ) {
+        return filePath;
+    }
+
+    return `${BACKEND_URL}/${filePath.replace(/^\/+/, "")}`;
+};
+
 
 
     // ======================================
@@ -47,6 +84,34 @@ function CourseLearn() {
 
 
     // ======================================
+    // CHAPITRES
+    // ======================================
+
+    const [chapters, setChapters] = useState([]);
+
+
+    // ======================================
+    // CHAPITRE ACTUEL
+    // ======================================
+
+    const [currentChapterIndex, setCurrentChapterIndex] =
+        useState(0);
+
+
+    // ======================================
+    // CONTENUS
+    // ======================================
+
+    const [videos, setVideos] = useState([]);
+
+    const [pdfs, setPdfs] = useState([]);
+
+    const [quizzes, setQuizzes] = useState([]);
+
+    const [exercises, setExercises] = useState([]);
+
+
+    // ======================================
     // PROGRESSION
     // ======================================
 
@@ -59,6 +124,9 @@ function CourseLearn() {
 
     const [loading, setLoading] = useState(true);
 
+    const [loadingContent, setLoadingContent] =
+        useState(false);
+
 
     // ======================================
     // ERREUR
@@ -68,7 +136,7 @@ function CourseLearn() {
 
 
     // ======================================
-    // MISE A JOUR PROGRESSION
+    // PROGRESSION
     // ======================================
 
     const [updatingProgress, setUpdatingProgress] =
@@ -76,7 +144,15 @@ function CourseLearn() {
 
 
     // ======================================
-    // RECUPERER COURS + INSCRIPTION
+    // CHAPITRE ACTUEL
+    // ======================================
+
+    const currentChapter =
+        chapters[currentChapterIndex] || null;
+
+
+    // ======================================
+    // CHARGER LE COURS
     // ======================================
 
     const loadCourse = async () => {
@@ -105,7 +181,7 @@ function CourseLearn() {
 
 
             // ==================================
-            // VERIFICATION INSCRIPTION
+            // INSCRIPTION
             // ==================================
 
             const enrollmentResponse =
@@ -133,10 +209,6 @@ function CourseLearn() {
             }
 
 
-            // ==================================
-            // ENREGISTRER LES DONNEES
-            // ==================================
-
             setCourse(
                 courseResponse.data
             );
@@ -152,6 +224,34 @@ function CourseLearn() {
                     enrollmentResponse.data.enrollment?.progress
                 ) || 0
             );
+
+
+            // ==================================
+            // CHAPITRES
+            // ==================================
+
+            const chaptersResponse =
+                await API.get(
+                    `/chapters/course/${id}`
+                );
+
+
+            console.log(
+                "CHAPITRES APPRENTISSAGE :",
+                chaptersResponse.data
+            );
+
+
+            const chaptersData =
+                Array.isArray(chaptersResponse.data)
+                    ? chaptersResponse.data
+                    : [];
+
+
+            setChapters(
+                chaptersData
+            );
+
 
         }
 
@@ -183,6 +283,193 @@ function CourseLearn() {
 
 
     // ======================================
+    // CHARGER LE CONTENU DU CHAPITRE
+    // ======================================
+
+    const loadChapterContent = async (
+        chapterId
+    ) => {
+
+        if (!chapterId) {
+
+            setVideos([]);
+
+            setPdfs([]);
+
+            setQuizzes([]);
+
+            setExercises([]);
+
+            return;
+
+        }
+
+
+        try {
+
+            setLoadingContent(true);
+
+
+            console.log(
+                "CHARGEMENT CONTENU CHAPITRE :",
+                chapterId
+            );
+
+
+            // ==================================
+            // LES 4 CONTENUS EN PARALLELE
+            // ==================================
+
+            const [
+
+                videosResponse,
+
+                pdfsResponse,
+
+                quizzesResponse,
+
+                exercisesResponse
+
+            ] = await Promise.all([
+
+                API.get(
+                    `/videos/chapter/${chapterId}`
+                ),
+
+                API.get(
+                    `/pdfs/chapter/${chapterId}`
+                ),
+
+                API.get(
+                    `/quizzes/chapter/${chapterId}`
+                ),
+
+                API.get(
+                    `/exercises/chapter/${chapterId}`
+                )
+
+            ]);
+
+
+            // ==================================
+            // VIDEOS
+            // ==================================
+
+            setVideos(
+
+                Array.isArray(
+                    videosResponse.data
+                )
+
+                    ? videosResponse.data
+
+                    : []
+
+            );
+
+
+            // ==================================
+            // PDF
+            // ==================================
+
+            setPdfs(
+
+                Array.isArray(
+                    pdfsResponse.data
+                )
+
+                    ? pdfsResponse.data
+
+                    : []
+
+            );
+
+
+            // ==================================
+            // QUIZ
+            // ==================================
+
+            setQuizzes(
+
+                Array.isArray(
+                    quizzesResponse.data
+                )
+
+                    ? quizzesResponse.data
+
+                    : []
+
+            );
+
+
+            // ==================================
+            // EXERCICES
+            // ==================================
+
+            setExercises(
+
+                Array.isArray(
+                    exercisesResponse.data
+                )
+
+                    ? exercisesResponse.data
+
+                    : []
+
+            );
+
+
+            console.log(
+                "VIDEOS :",
+                videosResponse.data
+            );
+
+            console.log(
+                "PDFS :",
+                pdfsResponse.data
+            );
+
+            console.log(
+                "QUIZ :",
+                quizzesResponse.data
+            );
+
+            console.log(
+                "EXERCICES :",
+                exercisesResponse.data
+            );
+
+
+        }
+
+        catch (error) {
+
+            console.error(
+                "Erreur chargement contenu chapitre :",
+                error
+            );
+
+
+            setVideos([]);
+
+            setPdfs([]);
+
+            setQuizzes([]);
+
+            setExercises([]);
+
+        }
+
+        finally {
+
+            setLoadingContent(false);
+
+        }
+
+    };
+
+
+    // ======================================
     // CHARGEMENT INITIAL
     // ======================================
 
@@ -194,7 +481,39 @@ function CourseLearn() {
 
 
     // ======================================
-    // METTRE A JOUR LA PROGRESSION
+    // CHARGER LE PREMIER CHAPITRE
+    // ======================================
+
+    useEffect(() => {
+
+        if (chapters.length > 0) {
+
+            setCurrentChapterIndex(0);
+
+        }
+
+    }, [chapters]);
+
+
+    // ======================================
+    // CHARGER LE CONTENU DU CHAPITRE
+    // ======================================
+
+    useEffect(() => {
+
+        if (currentChapter?._id) {
+
+            loadChapterContent(
+                currentChapter._id
+            );
+
+        }
+
+    }, [currentChapter?._id]);
+
+
+    // ======================================
+    // PROGRESSION
     // ======================================
 
     const updateCourseProgress = async (
@@ -229,12 +548,6 @@ function CourseLearn() {
                 );
 
 
-            console.log(
-                "PROGRESSION MISE À JOUR :",
-                response.data
-            );
-
-
             setProgress(
                 safeProgress
             );
@@ -244,6 +557,7 @@ function CourseLearn() {
                 response.data?.enrollment ||
                 enrollment
             );
+
 
         }
 
@@ -275,41 +589,51 @@ function CourseLearn() {
 
 
     // ======================================
-    // PROGRESSION SUIVANTE
+    // CHAPITRE SUIVANT
     // ======================================
 
     const handleNext = async () => {
 
-        if (progress >= 100) {
+        if (
+            currentChapterIndex <
+            chapters.length - 1
+        ) {
+
+            setCurrentChapterIndex(
+                currentChapterIndex + 1
+            );
 
             return;
 
         }
 
 
-        await updateCourseProgress(
-            progress + 25
-        );
+        if (progress < 100) {
+
+            await updateCourseProgress(
+                100
+            );
+
+        }
 
     };
 
 
     // ======================================
-    // PROGRESSION PRECEDENTE
+    // CHAPITRE PRECEDENT
     // ======================================
 
-    const handlePrevious = async () => {
+    const handlePrevious = () => {
 
-        if (progress <= 0) {
+        if (
+            currentChapterIndex > 0
+        ) {
 
-            return;
+            setCurrentChapterIndex(
+                currentChapterIndex - 1
+            );
 
         }
-
-
-        await updateCourseProgress(
-            progress - 25
-        );
 
     };
 
@@ -344,7 +668,6 @@ function CourseLearn() {
                             mx-auto
                         " />
 
-
                         <p className="
                             mt-5
                             text-gray-500
@@ -366,7 +689,7 @@ function CourseLearn() {
 
 
     // ======================================
-    // ERREUR / ACCES REFUSE
+    // ERREUR
     // ======================================
 
     if (error || !course) {
@@ -456,7 +779,6 @@ function CourseLearn() {
                                 py-3
                                 rounded-xl
                                 font-semibold
-                                transition
                             "
                         >
 
@@ -478,17 +800,13 @@ function CourseLearn() {
 
 
     // ======================================
-    // ENSEIGNANT
+    // INFOS
     // ======================================
 
     const teacherName =
         course.teacher?.name ||
         "Enseignant";
 
-
-    // ======================================
-    // IMAGE
-    // ======================================
 
     const imageUrl =
         course.thumbnail &&
@@ -499,18 +817,26 @@ function CourseLearn() {
             : "/images/course-placeholder.jpg";
 
 
+    // ======================================
+    // RENDU
+    // ======================================
+
     return (
 
         <DashboardLayout>
 
 
-            {/* ======================================
+            {/* ==================================
                 RETOUR
-            ====================================== */}
+            ================================== */}
 
             <button
                 type="button"
-                onClick={() => navigate("/student-courses")}
+                onClick={() =>
+                    navigate(
+                        `/student-course/${id}`
+                    )
+                }
                 className="
                     inline-flex
                     items-center
@@ -529,9 +855,9 @@ function CourseLearn() {
             </button>
 
 
-            {/* ======================================
+            {/* ==================================
                 HEADER
-            ====================================== */}
+            ================================== */}
 
             <div className="
                 bg-white
@@ -547,8 +873,6 @@ function CourseLearn() {
                 ">
 
 
-                    {/* IMAGE */}
-
                     <div className="
                         h-52
                         lg:h-full
@@ -563,21 +887,10 @@ function CourseLearn() {
                                 h-full
                                 object-cover
                             "
-                            onError={(event) => {
-
-                                event.currentTarget.onerror =
-                                    null;
-
-                                event.currentTarget.src =
-                                    "/images/course-placeholder.jpg";
-
-                            }}
                         />
 
                     </div>
 
-
-                    {/* INFORMATIONS */}
 
                     <div className="p-7">
 
@@ -653,14 +966,11 @@ function CourseLearn() {
                         </p>
 
 
-                        {/* PROGRESSION */}
-
                         <div className="mt-7">
 
                             <div className="
                                 flex
                                 justify-between
-                                items-center
                                 mb-2
                             ">
 
@@ -702,7 +1012,6 @@ function CourseLearn() {
                                         to-indigo-600
                                         rounded-full
                                         transition-all
-                                        duration-500
                                     "
                                     style={{
                                         width:
@@ -721,9 +1030,123 @@ function CourseLearn() {
             </div>
 
 
-            {/* ======================================
-                ZONE D'APPRENTISSAGE
-            ====================================== */}
+            {/* ==================================
+                CHAPITRES
+            ================================== */}
+
+            {chapters.length > 0 && (
+
+                <div className="
+                    bg-white
+                    rounded-3xl
+                    shadow-md
+                    mt-8
+                    p-6
+                ">
+
+                    <div className="
+                        flex
+                        flex-wrap
+                        justify-between
+                        items-center
+                        gap-4
+                    ">
+
+                        <div>
+
+                            <p className="
+                                text-sm
+                                text-purple-600
+                                font-semibold
+                            ">
+
+                                CHAPITRE {currentChapterIndex + 1}
+
+                            </p>
+
+
+                            <h2 className="
+                                text-2xl
+                                font-bold
+                                text-gray-900
+                                mt-1
+                            ">
+
+                                {currentChapter?.title}
+
+                            </h2>
+
+                        </div>
+
+
+                        <div className="
+                            text-sm
+                            text-gray-500
+                        ">
+
+                            {chapters.length} chapitre
+                            {chapters.length > 1 ? "s" : ""}
+
+                        </div>
+
+                    </div>
+
+
+                    {/* SELECTEUR CHAPITRES */}
+
+                    <div className="
+                        flex
+                        flex-wrap
+                        gap-2
+                        mt-5
+                    ">
+
+                        {chapters.map(
+                            (chapter, index) => (
+
+                                <button
+                                    key={chapter._id}
+                                    type="button"
+                                    onClick={() =>
+                                        setCurrentChapterIndex(
+                                            index
+                                        )
+                                    }
+                                    className={`
+                                        px-4
+                                        py-2
+                                        rounded-xl
+                                        font-semibold
+                                        text-sm
+                                        transition
+                                        ${
+                                            index ===
+                                            currentChapterIndex
+
+                                                ? "bg-purple-600 text-white"
+
+                                                : "bg-gray-100 text-gray-700 hover:bg-purple-100"
+                                        }
+                                    `}
+                                >
+
+                                    Chapitre {index + 1}
+
+                                </button>
+
+                            )
+                        )}
+
+                    </div>
+
+                </div>
+
+            )}
+
+
+            {/* ==================================
+                CONTENU
+            ================================== */}
 
             <div className="
                 grid
@@ -732,10 +1155,6 @@ function CourseLearn() {
                 mt-8
             ">
 
-
-                {/* ==================================
-                    CONTENU
-                ================================== */}
 
                 <main className="
                     bg-white
@@ -764,13 +1183,12 @@ function CourseLearn() {
                                 className="text-2xl"
                             />
 
-
                             <span className="
                                 text-sm
                                 font-semibold
                             ">
 
-                                CONTENU DE LA FORMATION
+                                CONTENU DU CHAPITRE
 
                             </span>
 
@@ -784,103 +1202,230 @@ function CourseLearn() {
                             mt-3
                         ">
 
-                            Bienvenue dans votre formation
+                            {currentChapter?.title ||
+                                "Contenu de la formation"
+                            }
 
                         </h2>
+
+
+                        {currentChapter?.description && (
+
+                            <p className="
+                                text-gray-500
+                                mt-3
+                                whitespace-pre-line
+                            ">
+
+                                {currentChapter.description}
+
+                            </p>
+
+                        )}
 
                     </div>
 
 
-                    {/* VIDEO */}
+                    {/* CHARGEMENT CONTENU */}
 
-                    {course.video ? (
-
-                        <div className="
-                            bg-black
-                            aspect-video
-                        ">
-
-                            <video
-                                controls
-                                className="
-                                    w-full
-                                    h-full
-                                "
-                                src={course.video}
-                            >
-
-                                Votre navigateur ne supporte
-                                pas la lecture vidéo.
-
-                            </video>
-
-                        </div>
-
-                    ) : (
+                    {loadingContent ? (
 
                         <div className="
-                            bg-gray-100
-                            aspect-video
+                            min-h-[400px]
                             flex
                             items-center
                             justify-center
                         ">
 
-                            <div className="
-                                text-center
-                                text-gray-500
-                            ">
+                            <div className="text-center">
 
-                                <FaPlayCircle
-                                    className="
-                                        text-6xl
-                                        mx-auto
-                                        mb-4
-                                        text-purple-300
-                                    "
-                                />
+                                <div className="
+                                    w-12
+                                    h-12
+                                    border-4
+                                    border-purple-200
+                                    border-t-purple-600
+                                    rounded-full
+                                    animate-spin
+                                    mx-auto
+                                " />
 
-                                <p>
-                                    Aucune vidéo disponible
+                                <p className="
+                                    mt-4
+                                    text-gray-500
+                                ">
+
+                                    Chargement du contenu...
+
                                 </p>
 
                             </div>
 
                         </div>
 
+                    ) : (
+
+                        <div className="p-7 space-y-8">
+
+
+                            {/* ==========================
+                                VIDEOS
+                            ========================== */}
+
+                            {videos.length > 0 && (
+
+                                <section>
+
+                                    <div className="
+                                        flex
+                                        items-center
+                                        gap-3
+                                        mb-4
+                                    ">
+
+                                        <FaPlayCircle
+                                            className="
+                                                text-purple-600
+                                                text-xl
+                                            "
+                                        />
+
+                                        <h3 className="
+                                            text-xl
+                                            font-bold
+                                            text-gray-800
+                                        ">
+
+                                            Vidéo du chapitre
+
+                                        </h3>
+
+                                    </div>
+
+
+                                    <div className="
+                                        space-y-5
+                                    ">
+
+                                      {videos.map((video) => (
+                                        <VideoPlayer
+                                          key={video._id}
+                                          video={video}
+                                          getFileUrl={getFileUrl}
+                                        />
+                                      ))}
+
+                                    </div>
+
+                                </section>
+
+                            )}
+
+
+                            {/* ==========================
+                                PDF
+                            ========================== */}
+                            {pdfs.map((pdf) => (
+                              <PdfViewer
+                                key={pdf._id}
+                                pdf={pdf}
+                                getFileUrl={getFileUrl}
+                              />
+                            ))}
+
+
+                            {/* ==========================
+                                QUIZ
+                            ========================== */}
+                            {quizzes.map((quiz) => (
+                              <QuizPlayer
+                                key={quiz._id}
+                                quiz={quiz}
+                                onStart={() =>
+                                  navigate(`/student-quiz/${quiz._id}`)
+                                }
+                              />
+                            ))}
+
+
+                            {/* ==========================
+                                EXERCICES
+                            ========================== */}
+                            {exercises.map((exercise) => (
+                              <ExercisePlayer
+                                key={exercise._id}
+                                exercise={exercise}
+                                getFileUrl={getFileUrl}
+                              />
+                            ))}
+
+
+                            {/* ==========================
+                                AUCUN CONTENU
+                            ========================== */}
+
+                            {!videos.length &&
+                                !pdfs.length &&
+                                !quizzes.length &&
+                                !exercises.length && (
+
+                                    <div className="
+                                        min-h-[350px]
+                                        flex
+                                        items-center
+                                        justify-center
+                                        bg-gray-50
+                                        rounded-2xl
+                                    ">
+
+                                        <div className="
+                                            text-center
+                                            text-gray-500
+                                        ">
+
+                                            <FaBookOpen
+                                                className="
+                                                    text-5xl
+                                                    mx-auto
+                                                    mb-4
+                                                    text-purple-300
+                                                "
+                                            />
+
+
+                                            <p className="
+                                                font-semibold
+                                            ">
+
+                                                Aucun contenu disponible
+
+                                            </p>
+
+
+                                            <p className="
+                                                text-sm
+                                                mt-2
+                                            ">
+
+                                                L'enseignant n'a pas encore
+                                                ajouté de contenu à ce chapitre.
+
+                                            </p>
+
+                                        </div>
+
+                                    </div>
+
+                                )}
+
+                        </div>
+
                     )}
 
 
-                    {/* DESCRIPTION */}
-
-                    <div className="p-7">
-
-                        <h3 className="
-                            text-xl
-                            font-bold
-                            text-gray-800
-                            mb-4
-                        ">
-
-                            À propos de ce cours
-
-                        </h3>
-
-
-                        <p className="
-                            text-gray-600
-                            leading-8
-                            whitespace-pre-line
-                        ">
-
-                            {course.description}
-
-                        </p>
-
-                    </div>
-
-
-                    {/* NAVIGATION */}
+                    {/* ==================================
+                        NAVIGATION CHAPITRES
+                    ================================== */}
 
                     <div className="
                         p-7
@@ -891,12 +1436,13 @@ function CourseLearn() {
                         gap-4
                     ">
 
+
                         <button
                             type="button"
                             onClick={handlePrevious}
                             disabled={
-                                progress <= 0 ||
-                                updatingProgress
+                                currentChapterIndex <= 0 ||
+                                loadingContent
                             }
                             className="
                                 inline-flex
@@ -909,7 +1455,6 @@ function CourseLearn() {
                                 hover:bg-gray-200
                                 text-gray-700
                                 font-semibold
-                                transition
                                 disabled:opacity-40
                                 disabled:cursor-not-allowed
                             "
@@ -926,8 +1471,9 @@ function CourseLearn() {
                             type="button"
                             onClick={handleNext}
                             disabled={
-                                progress >= 100 ||
-                                updatingProgress
+                                updatingProgress ||
+                                loadingContent ||
+                                chapters.length === 0
                             }
                             className="
                                 inline-flex
@@ -940,22 +1486,25 @@ function CourseLearn() {
                                 hover:bg-purple-700
                                 text-white
                                 font-semibold
-                                transition
                                 disabled:opacity-40
                                 disabled:cursor-not-allowed
                             "
                         >
 
-                            {progress >= 100
-                                ? "Formation terminée"
-                                : updatingProgress
-                                ? "Enregistrement..."
-                                : "Continuer"
+                            {currentChapterIndex <
+                            chapters.length - 1
+
+                                ? "Chapitre suivant"
+
+                                : progress >= 100
+                                    ? "Formation terminée"
+                                    : updatingProgress
+                                        ? "Enregistrement..."
+                                        : "Terminer la formation"
                             }
 
-                            {progress < 100 && (
-                                <FaChevronRight />
-                            )}
+
+                            <FaChevronRight />
 
                         </button>
 
@@ -1014,6 +1563,7 @@ function CourseLearn() {
 
                                 </h3>
 
+
                                 <p className="
                                     text-sm
                                     text-gray-500
@@ -1055,7 +1605,7 @@ function CourseLearn() {
                     </div>
 
 
-                    {/* INFORMATIONS */}
+                    {/* RESSOURCES */}
 
                     <div className="
                         bg-white
@@ -1076,54 +1626,126 @@ function CourseLearn() {
                         </h3>
 
 
-                        {/* PDF */}
-
-                        {course.pdf ? (
-
-                            <a
-                                href={course.pdf}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="
-                                    flex
-                                    items-center
-                                    gap-4
-                                    p-4
-                                    rounded-2xl
-                                    bg-red-50
-                                    text-red-700
-                                    hover:bg-red-100
-                                    transition
-                                "
-                            >
-
-                                <FaFilePdf
-                                    className="text-2xl"
-                                />
+                        <div className="
+                            space-y-3
+                        ">
 
 
-                                <div>
+                            <div className="
+                                p-4
+                                rounded-2xl
+                                bg-purple-50
+                            ">
 
-                                    <p className="font-semibold">
+                                <p className="
+                                    text-sm
+                                    text-gray-500
+                                ">
 
-                                        Support PDF
+                                    Vidéos
 
-                                    </p>
+                                </p>
 
-                                    <p className="
-                                        text-xs
-                                        text-red-500
-                                    ">
 
-                                        Ouvrir le document
+                                <p className="
+                                    text-xl
+                                    font-bold
+                                    text-purple-600
+                                ">
 
-                                    </p>
+                                    {videos.length}
 
-                                </div>
+                                </p>
 
-                            </a>
+                            </div>
 
-                        ) : (
+
+                            <div className="
+                                p-4
+                                rounded-2xl
+                                bg-red-50
+                            ">
+
+                                <p className="
+                                    text-sm
+                                    text-gray-500
+                                ">
+
+                                    PDF
+
+                                </p>
+
+
+                                <p className="
+                                    text-xl
+                                    font-bold
+                                    text-red-600
+                                ">
+
+                                    {pdfs.length}
+
+                                </p>
+
+                            </div>
+
+
+                            <div className="
+                                p-4
+                                rounded-2xl
+                                bg-green-50
+                            ">
+
+                                <p className="
+                                    text-sm
+                                    text-gray-500
+                                ">
+
+                                    Quiz
+
+                                </p>
+
+
+                                <p className="
+                                    text-xl
+                                    font-bold
+                                    text-green-600
+                                ">
+
+                                    {quizzes.length}
+
+                                </p>
+
+                            </div>
+
+
+                            <div className="
+                                p-4
+                                rounded-2xl
+                                bg-orange-50
+                            ">
+
+                                <p className="
+                                    text-sm
+                                    text-gray-500
+                                ">
+
+                                    Exercices
+
+                                </p>
+
+
+                                <p className="
+                                    text-xl
+                                    font-bold
+                                    text-orange-600
+                                ">
+
+                                    {exercises.length}
+
+                                </p>
+
+                            </div>
+
 
                             <div className="
                                 flex
@@ -1132,61 +1754,39 @@ function CourseLearn() {
                                 p-4
                                 rounded-2xl
                                 bg-gray-50
-                                text-gray-400
                             ">
 
-                                <FaFilePdf
-                                    className="text-2xl"
+                                <FaClock
+                                    className="
+                                        text-purple-600
+                                    "
                                 />
 
-                                <span>
-                                    Aucun PDF disponible
-                                </span>
 
-                            </div>
+                                <div>
 
-                        )}
+                                    <p className="
+                                        font-semibold
+                                        text-gray-700
+                                    ">
+
+                                        Durée
+
+                                    </p>
 
 
-                        {/* DUREE */}
+                                    <p className="
+                                        text-sm
+                                        text-gray-500
+                                    ">
 
-                        <div className="
-                            flex
-                            items-center
-                            gap-4
-                            mt-4
-                            p-4
-                            rounded-2xl
-                            bg-gray-50
-                        ">
+                                        {course.duration ||
+                                            "Non définie"
+                                        }
 
-                            <FaClock
-                                className="
-                                    text-purple-600
-                                "
-                            />
+                                    </p>
 
-                            <div>
-
-                                <p className="
-                                    font-semibold
-                                    text-gray-700
-                                ">
-
-                                    Durée
-
-                                </p>
-
-                                <p className="
-                                    text-sm
-                                    text-gray-500
-                                ">
-
-                                    {course.duration ||
-                                        "Non définie"
-                                    }
-
-                                </p>
+                                </div>
 
                             </div>
 
@@ -1230,7 +1830,6 @@ function CourseLearn() {
                                 text-sm
                                 text-green-700
                                 mt-2
-                                leading-6
                             ">
 
                                 Félicitations ! Vous avez

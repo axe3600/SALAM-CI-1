@@ -4,6 +4,7 @@ import {
 
     createQuiz,
     getQuizzesByChapter,
+    getQuizById,
     updateQuiz,
     deleteQuiz,
 
@@ -29,6 +30,12 @@ router.post(
 router.get(
     "/chapter/:chapterId",
     getQuizzesByChapter
+);
+
+// Récupérer un quiz par son ID
+router.get(
+    "/:id",
+    getQuizById
 );
 
 // Modifier un quiz
