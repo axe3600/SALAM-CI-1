@@ -149,7 +149,7 @@ function ExercisePlayer({ exercise, getFileUrl, downloadFile }) {
                     <FaExternalLinkAlt />
                 </a>
             )}
-
+&nbsp;&nbsp;&nbsp;
 {attachmentUrl && (
     <button
         type="button"
