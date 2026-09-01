@@ -87,7 +87,7 @@ const getCourses = async () => {
         setLoading(true)
 
         const res = await API.get(
-            `/courses?page=${page}&limit=${limit}`
+            `/courses/admin?page=${page}&limit=${limit}`
         )
 
         setCourses(res.data.courses)

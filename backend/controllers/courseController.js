@@ -344,6 +344,166 @@ export const getCourses = async (req, res) => {
 
 };
 
+// ======================================
+// RÉCUPÉRER TOUS LES COURS POUR L'ADMIN
+// GET /api/courses/admin
+// ======================================
+export const getAdminCourses = async (req, res) => {
+
+  try {
+
+    // =========================
+    // PARAMÈTRES
+    // =========================
+
+    const page =
+      parseInt(req.query.page) || 1;
+
+    const limit =
+      parseInt(req.query.limit) || 10;
+
+    const search =
+      req.query.search?.trim() || "";
+
+    const category =
+      req.query.category?.trim() || "";
+
+
+    // =========================
+    // FILTRE ADMIN
+    // =========================
+
+    const filter = {};
+
+
+    // =========================
+    // FILTRE CATÉGORIE
+    // =========================
+
+    if (
+      category &&
+      category !== "Toutes"
+    ) {
+
+      filter.category = category;
+
+    }
+
+
+    // =========================
+    // RECHERCHE
+    // TITRE / DESCRIPTION
+    // =========================
+
+    if (search) {
+
+      filter.$or = [
+
+        {
+          title: {
+            $regex: search,
+            $options: "i"
+          }
+        },
+
+        {
+          description: {
+            $regex: search,
+            $options: "i"
+          }
+        }
+
+      ];
+
+    }
+
+
+    // =========================
+    // PAGINATION
+    // =========================
+
+    const skip =
+      (page - 1) * limit;
+
+
+    // =========================
+    // TOTAL
+    // =========================
+
+    const totalCourses =
+      await Course.countDocuments(filter);
+
+
+    const totalPages =
+      Math.ceil(totalCourses / limit);
+
+
+    // =========================
+    // COURS
+    // =========================
+
+    const courses =
+      await Course.find(filter)
+
+        .populate(
+          "teacher",
+          "name email"
+        )
+
+        .sort({
+          createdAt: -1
+        })
+
+        .skip(skip)
+
+        .limit(limit);
+
+
+    // =========================
+    // RÉPONSE
+    // =========================
+
+    return res.status(200).json({
+
+      success: true,
+
+      courses,
+
+      currentPage: page,
+
+      totalPages,
+
+      totalCourses,
+
+      limit,
+
+      search,
+
+      category
+
+    });
+
+  }
+
+  catch (error) {
+
+    console.error(
+      "ERREUR COURS ADMIN :",
+      error
+    );
+
+    return res.status(500).json({
+
+      success: false,
+
+      message:
+        "Impossible de récupérer les cours."
+
+    });
+
+  }
+
+};
 
 // =====================================================
 // COURS DE L'ENSEIGNANT CONNECTE

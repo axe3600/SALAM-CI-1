@@ -7,6 +7,7 @@ import {
 
   createCourse,
   getCourses,
+  getAdminCourses,
   getTeacherCourses,
   getCourseStats,
   getCoursesByCategory,
@@ -136,6 +137,17 @@ router.patch(
 
 )
 
+// ======================================
+// COURS POUR L'ADMIN
+// GET /api/courses/admin
+// ======================================
+
+router.get(
+  "/admin",
+  authMiddleware,
+  adminMiddleware,
+  getAdminCourses
+)
 
 // ======================================
 // RÉCUPÉRER UN COURS
