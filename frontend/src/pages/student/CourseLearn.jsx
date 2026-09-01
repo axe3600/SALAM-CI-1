@@ -418,10 +418,27 @@ const getFileUrl = (filePath) => {
 
             );
 
-
+            console.log(
+                "========== DEBUG FICHIERS =========="
+            );
+            
             console.log(
                 "VIDEOS :",
-                videosResponse.data
+                JSON.stringify(videosResponse.data, null, 2)
+            );
+            
+            console.log(
+                "PDFS :",
+                JSON.stringify(pdfsResponse.data, null, 2)
+            );
+            
+            console.log(
+                "EXERCICES :",
+                JSON.stringify(exercisesResponse.data, null, 2)
+            );
+            
+            console.log(
+                "===================================="
             );
 
             console.log(
