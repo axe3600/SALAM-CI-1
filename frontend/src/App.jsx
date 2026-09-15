@@ -4,6 +4,9 @@ import {
 } from "react-router-dom"
 
 import ProtectedRoute from "./components/ProtectedRoute"
+import { useState } from "react";
+import SplashScreen from "./components/SplashScreen";
+import { successToast } from "./utils/toast";
 
 // PUBLIC
 import Home from "./pages/public/Home"
@@ -77,7 +80,26 @@ import Maintenance from "./pages/public/Maintenance"
 import ForgotPassword from "./pages/public/ForgotPassword"
 import ResetPassword from "./pages/public/ResetPassword"
 
+
 function App() {
+  const [showSplash, setShowSplash] = useState(true);
+
+  const handleSplashFinish = () => {
+    setShowSplash(false);
+
+    successToast(
+      "Bienvenue 👋",
+      "Bienvenue Sur notre Plateforme de formation SALAM-CI"
+    );
+  };
+
+  if (showSplash) {
+    return (
+      <SplashScreen
+        onFinish={handleSplashFinish}
+      />
+    );
+  }
 
   return (
 
