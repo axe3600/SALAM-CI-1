@@ -4,11 +4,47 @@ import "../styles/SplashScreen.css";
 
 function SplashScreen({ onFinish }) {
   useEffect(() => {
-    const timer = setTimeout(() => {
-      onFinish();
-    }, 2500);
+    let finished = false;
 
-    return () => clearTimeout(timer);
+    const MIN_SPLASH_TIME = 800;
+    const startTime = Date.now();
+
+    const finishSplash = () => {
+      if (finished) return;
+
+      const elapsed = Date.now() - startTime;
+      const remainingTime = Math.max(
+        0,
+        MIN_SPLASH_TIME - elapsed
+      );
+
+      setTimeout(() => {
+        if (!finished) {
+          finished = true;
+          onFinish();
+        }
+      }, remainingTime);
+    };
+
+    // Le navigateur a terminé le chargement initial
+    if (document.readyState === "complete") {
+      finishSplash();
+    } else {
+      window.addEventListener(
+        "load",
+        finishSplash,
+        { once: true }
+      );
+    }
+
+    return () => {
+      finished = true;
+
+      window.removeEventListener(
+        "load",
+        finishSplash
+      );
+    };
   }, [onFinish]);
 
   return (
